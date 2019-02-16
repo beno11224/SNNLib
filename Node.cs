@@ -23,6 +23,7 @@ namespace SNNLib
         public void addSource(Synapse source)
         {
             Inputs.Add(source);
+            //TODO make sure to add everything else backwards...
         }
 
         public void addTarget(Node target)

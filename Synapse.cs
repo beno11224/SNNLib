@@ -15,7 +15,7 @@ namespace SNNLib
         public double Weight; //TODO this is the bit that the research is done on. needs to be more than just a 'double'
         public int Delay; //maxint ~ 2 billion, so ample time units
 
-        public Synapse(Node target, Node source, double weight, int delay)
+        public Synapse(Node source, Node target, double weight, int delay)
         {
             Source = source;
             Target = target;

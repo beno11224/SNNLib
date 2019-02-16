@@ -26,62 +26,63 @@ namespace SNNLib
     public class FeedForwardNetwork : Network
     {
         //standard FeedForward Network
-        Dictionary <int,Node> Nodes;
-        Dictionary <int,Synapse> Synapses;
-        //List<Synapse> Synapses; //dict or list?
+        List<Node> InputNodes = new List<Node>();
+        List<Node> HiddenNodes = new List<Node>();
+        List<Node> OutputNodes = new List<Node>();
 
         public FeedForwardNetwork(int[] layers)
         {
-            int prev_layer;
+            int last_hidden = layers.Length - 1;
             //layers[] stores the size of each layer - each layer is fully connected to the next one
-            int node_count = 0;
-
-            int node_max = layers[0]; //for efficiency etc
 
             //setup of Network
 
+            List<Node> prev_layer = new List<Node>();
+
             //setup input layer
-            for ( ; node_count < node_max; node_count++) //TODO node_count needs to encompass all nodes.
+            for (int node_count = 0 ; node_count < layers[0]; node_count++)
             {
-                Nodes.Add(node_count, new InputNode());//TODO is this right?
+                InputNode node = new InputNode();
+                prev_layer.Add(node);
+                InputNodes.Add(node);
             }
 
-            for (int hidden_layer_count = 1; hidden_layer_count < layers.Length - 1; hidden_layer_count++)
+            for (int hidden_layer_count = 1; hidden_layer_count < last_hidden; hidden_layer_count++)
             {
-                node_max += layers[hidden_layer_count];
-                prev_layer = hidden_layer_count - 1;
+                List<Node> temp_layer = new List<Node>();
 
                 //setup hidden layer & connections to input layer
-                for (; node_count < node_max; node_count++)
+                for (int node_count = 0; node_count < layers[hidden_layer_count]; node_count++)
                 {
-                    Nodes.Add(node_count,new FFHiddenNode());//[0][node_count] = new InputNode(); //TODO this might need to address problem of input.
-
-                    int synapse_index = node_count * layers[prev_layer]; //indexing issues here - best way to solve?
+                    FFHiddenNode hidden = new FFHiddenNode();
 
                     //make synapse connections
-                    for (int synapse_count = 0; synapse_count < layers[prev_layer]; synapse_count++) //for each node in the input layer
+                    foreach(Node prev_node in prev_layer)
                     {
-                        Synapses.Add(synapse_index + synapse_count, new Synapse(synapse_count, node_count, 1.0)); //TODO randomise weights
+                        hidden.addSource(prev_node);
                     }
+
+                    temp_layer.Add(hidden);
+                    HiddenNodes.Add(hidden);
                 }
+
+                prev_layer.Clear();
+                prev_layer = new List<Node>(temp_layer);
+
             }
 
-            node_max += layers[layers.Length];
-
-            prev_layer = layers.Length - 1;
-
             //setup output layer
-            for (; node_count < node_max; node_count++)
+            for (int node_count = 0; node_count < layers[layers.Length -1]; node_count++) //TODO not layers.length
             {
-                Nodes.Add(node_count, new OutputNode());
-
-                int synapse_index = node_count * layers[prev_layer]; //indexing issues here - best way to solve?
+                OutputNode outnode = new OutputNode();
 
                 //make synapse connections
-                for (int synapse_count = 0; synapse_count < layers[prev_layer]; synapse_count++) //for each node in the input layer
+                foreach(Node prev_node in prev_layer) //for each node in the last layer
                 {
-                    Synapses.Add(synapse_index + synapse_count, new Synapse(synapse_count, node_count, 1.0)); //TODO randomise weights
+                    outnode.addSource(prev_node);
                 }
+
+                OutputNodes.Add(outnode);
             }
         }
     }
