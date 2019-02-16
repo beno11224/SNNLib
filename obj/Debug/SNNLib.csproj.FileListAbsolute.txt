@@ -1,0 +1,2 @@
+C:\Users\sandr\source\repos\SNNLib\SNNLib\obj\Debug\SNNLib.csprojAssemblyReference.cache
+C:\Users\sandr\source\repos\SNNLib\SNNLib\obj\Debug\SNNLib.csproj.CoreCompileInputs.cache
