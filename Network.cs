@@ -9,21 +9,14 @@ namespace SNNLib
 
     /* TODOs:
     * 
-    * //TODO backpropagation stuff...
-    * //TODO given input, calculate output
+    * backpropagation
+    * forward pass calculations
+    * input/output
+    * custom event queue
     * 
     */
 
-
-
-    public abstract class Network
-    {
-        //abstract way of storing whole collection of nodes - including input/output
-        Dictionary<int,Node> Nodes; 
-    }
-
-
-    public class FeedForwardNetwork : Network
+    public class FeedForwardNetwork
     {
         //standard FeedForward Network
         List<Node> InputNodes = new List<Node>();
@@ -92,7 +85,4 @@ namespace SNNLib
             }
         }
     }
-
-
-
 }
