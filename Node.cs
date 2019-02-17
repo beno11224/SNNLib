@@ -15,6 +15,11 @@ namespace SNNLib
 
         public void fire() { }
 
+        public void sendData(Object data)
+        {
+            //TODO do stuff with data
+        }
+
         public void addSource(Node source)
         {
             Inputs.Add(new Synapse(source, this, 0.0, 1));
