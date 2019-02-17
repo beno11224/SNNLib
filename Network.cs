@@ -59,7 +59,10 @@ namespace SNNLib
                     //make synapse connections
                     foreach(Node prev_node in prev_layer)
                     {
-                        hidden.addSource(prev_node);
+                        //setup the synapses
+                        Synapse s = new Synapse(prev_node, hidden, 1, 0);
+                        hidden.addSource(s);
+                        prev_node.addTarget(s);
                     }
 
                     temp_layer.Add(hidden);
@@ -79,7 +82,10 @@ namespace SNNLib
                 //make synapse connections
                 foreach(Node prev_node in prev_layer) //for each node in the last layer
                 {
-                    outnode.addSource(prev_node);
+                    //setup the synapses
+                    Synapse s = new Synapse(prev_node, outnode, 1, 0);
+                    outnode.addSource(s);
+                    prev_node.addTarget(s);
                 }
 
                 OutputNodes.Add(outnode);

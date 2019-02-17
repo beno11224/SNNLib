@@ -9,11 +9,11 @@ namespace SNNLib
     class Node
     {
         //Each node contains the snapses that go from it to other nodes.
-        protected double Bias; //same as weights - needs to not be a double?
-        protected List<Synapse> Inputs;
-        protected List<Synapse> Outputs;
+        protected double Bias = 0; //same as weights - needs to not be a double?
+        protected List<Synapse> Inputs = new List<Synapse>();
+        protected List<Synapse> Outputs = new List<Synapse>();
 
-        public void fire() { } //TODO maybe shouldn't return a double?
+        public void fire() { }
 
         public void addSource(Node source)
         {
