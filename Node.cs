@@ -6,34 +6,32 @@ using System.Threading.Tasks;
 
 namespace SNNLib
 {
-    class Node
+   public class Node
     {
         //Each node contains the snapses that go from it to other nodes.
         protected double Bias = 0; //same as weights - needs to not be a double?
         protected List<Synapse> Inputs = new List<Synapse>();
         protected List<Synapse> Outputs = new List<Synapse>();
 
-        public void fire() { }
+        public int Delay = 0;
 
-        public void sendData(Object data)
+        public void sendData(Message tx)
         {
             //TODO do stuff with data
+            foreach(Synapse output in Outputs)
+            {
+                output.sendMessage(new Message(tx.Time + Delay,null,tx.Data)); //null because we havent stored the actual Node.
+            }
         }
 
-        public void addSource(Node source)
+        public void receiveData(Message rx)
         {
-            Inputs.Add(new Synapse(source, this, 0.0, 1));
+            sendData(rx);//TODO - what to do in the general term? (just pass it on as an example?)
         }
 
         public void addSource(Synapse source)
         {
             Inputs.Add(source);
-            //TODO make sure to add everything else backwards...
-        }
-
-        public void addTarget(Node target)
-        {
-            Outputs.Add(new Synapse(this, target, 0.0, 1));
         }
 
         public void addTarget(Synapse target)
@@ -41,15 +39,21 @@ namespace SNNLib
             Outputs.Add(target);
         }
 
+        //if user wants a static delay on the node
+        public void setDelay(int delay)
+        {
+            Delay = delay;
+        }
+
     }
 
-    class InputNode : Node
+    public class InputNode : Node
     {
         //TODO input from some datastructure
 
     }
 
-    class FFHiddenNode : Node
+    public class FFHiddenNode : Node
     {
         public int layer { private set; get; } //property to help visualise layers
 
@@ -61,7 +65,7 @@ namespace SNNLib
         //TODO //implent spiking function
     }
 
-    class OutputNode : Node
+    public class OutputNode : Node
     {
 
         //TODO output to some datastructure 

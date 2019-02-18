@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace SNNLib
 {
-    class EventHandling
+    public class MessageHandling
     {
         //TODO catch all events from synapses
         //TODO at right time, filter event queue 
 
-        List<CommunicationEvent> eventList = new List<CommunicationEvent>();
+        List<Message> eventList = new List<Message>();
 
         public void RunEventsAtCurrentTime()
         {
@@ -20,7 +20,7 @@ namespace SNNLib
 
             do
             {
-                eventList[0].NodeToCommunicate.sendData(eventList[0].Data); //pass the message to the next node
+                eventList[0].NodeToCommunicate.receiveData(eventList[0].Data); //pass the message to the next node
 
                 eventList.RemoveAt(0); //remove the first item as the message is sent
 
@@ -31,13 +31,13 @@ namespace SNNLib
 
     }
 
-    class CommunicationEvent
+    public class Message
     {
         public int Time { get; private set; }
         public Node NodeToCommunicate { get; private set; }
         public Object Data { get; private set; }//TODO do I really just want an int/double?
 
-        public CommunicationEvent(int time, Node node, Object data)
+        public Message(int time, Node node, Object data)
         {
             Time = time;
             NodeToCommunicate = node;

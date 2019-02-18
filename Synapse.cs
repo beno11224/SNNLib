@@ -6,35 +6,51 @@ using System.Threading.Tasks;
 
 namespace SNNLib
 {
-    class Synapse
+    public class Synapse
     {
-
         //targetNode is the index of the node - array so multiple layers can be traversed.
         private Node Source; 
         private Node Target; 
         public double Weight; //TODO this is the bit that the research is done on. needs to be more than just a 'double'
         public int Delay; //maxint ~ 2 billion, so ample time units
 
-        public Synapse(Node source, Node target, double weight, int delay)
+        public Synapse(Node source, Node target)//, double weight, int delay)
         {
-            Source = source;
+            Source = source; //Source/Target shouldnt change.
             Target = target;
-            Weight = weight; // this needs to be different
-            Delay = delay;
-
-            //target.add(this);
+            Weight = 0; //start with weight of 0 - should be randomised in child classes
+            Delay = 0;  //automatically zero delay - add this in if otherwise required.
         }
 
-        public void sendMessage()
+        public void sendMessage(Message rx)
         {
-            //TODO create event for output node, remember to add  any transmit delay in HERE not in node class
-
-            //setup event
-
-            //Send event
+            Message tx = new Message(rx.Time + Delay, Target, rx.Data);
         }
 
+        public void setDelay(int delay)
+        {
+            Delay = delay;
+        }
 
+        public void setWeight(double weight)
+        {
+            Weight = weight;
+        }
+
+    }
+
+    public class FFSynapse : Synapse
+    {
+        public FFSynapse(Node source, Node target) : base(source, target)
+        {
+            Delay = 0;
+            Weight = 0;//RANDOMISE
+        }
+
+        public void sendMesage() //replace the parent method with a different version. more useful for doing fancy things
+        {
+
+        }
 
     }
 }

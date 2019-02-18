@@ -16,12 +16,33 @@ namespace SNNLib
     * 
     */
 
+    public class NetworkLoop
+    {
+        
+
+        public void run() 
+        
+    }
+
     public class FeedForwardNetwork
     {
         //standard FeedForward Network
         List<Node> InputNodes = new List<Node>();
         List<Node> HiddenNodes = new List<Node>();
         List<Node> OutputNodes = new List<Node>();
+
+        public MessageHandling messageHandling = new MessageHandling();
+
+        //every network will be run with a game like loop
+        //basically run the next events in Messages in a while.
+        public void run() //TODO pass the output layer?
+        {
+            bool exit = false;
+            while(exit == false)
+            {
+                messageHandling.RunEventsAtCurrentTime(); //TODO is this done?
+            }
+        }
 
         public FeedForwardNetwork(int[] layers)
         {
@@ -53,7 +74,7 @@ namespace SNNLib
                     foreach(Node prev_node in prev_layer)
                     {
                         //setup the synapses
-                        Synapse s = new Synapse(prev_node, hidden, 1, 0);
+                        Synapse s = new Synapse(prev_node, hidden);
                         hidden.addSource(s);
                         prev_node.addTarget(s);
                     }
@@ -76,7 +97,7 @@ namespace SNNLib
                 foreach(Node prev_node in prev_layer) //for each node in the last layer
                 {
                     //setup the synapses
-                    Synapse s = new Synapse(prev_node, outnode, 1, 0);
+                    Synapse s = new Synapse(prev_node, outnode);
                     outnode.addSource(s);
                     prev_node.addTarget(s);
                 }
