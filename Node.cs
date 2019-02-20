@@ -26,7 +26,7 @@ namespace SNNLib
 
         public void receiveData(Message rx)
         {
-            sendData(rx);//TODO - what to do in the general term? (just pass it on as an example?)
+            sendData(rx);//for a general node automatically just pass it on.
         }
 
         public void addSource(Synapse source)
@@ -57,11 +57,6 @@ namespace SNNLib
     {
         public int layer { private set; get; } //property to help visualise layers
 
-        public FFHiddenNode() //does this need any parameters?
-        {
-         
-        }
-
         //TODO //implent spiking function
     }
 
@@ -69,5 +64,31 @@ namespace SNNLib
     {
 
         //TODO output to some datastructure 
+    }
+
+    public class LIFNode : Node
+    {
+        //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
+
+        //TODO this needs to be made better/again - currently for initial testing.
+
+        int CurrentValue = 0;
+        int CurrentTime = 0; //time that the currentvalue was at. need to 'leak' current value before doing anything else
+        int Threshold = 10; //if neuron exceeds this value then it spikes
+        int output = 1; //designated output value
+        int leakiness = 1; // how much 'value' node looses per time unit
+       
+        public void receiveData(Message rx)
+        {
+            //TODO get weighted pulse from Synapse
+            //TODO work out actual current
+            int time_difference = rx.Time - CurrentTime;
+            CurrentValue -= leakiness * time_difference; //TODO use non-linear decay (also use doubles)
+            CurrentValue = (CurrentValue < 0)? 0: CurrentValue; //ensure CurrentValue doesn't go below 0
+            CurrentTime = rx.Time;
+        }
+
+        //public void sendData(Message tx) //TODO is this changed?
+
     }
 }

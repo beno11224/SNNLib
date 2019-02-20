@@ -11,18 +11,10 @@ namespace SNNLib
     * 
     * backpropagation
     * forward pass calculations
-    * input/output
-    * custom event queue
+    * 
+    * 
     * 
     */
-
-    public class NetworkLoop
-    {
-        
-
-        public void run() 
-        
-    }
 
     public class FeedForwardNetwork
     {
@@ -37,11 +29,12 @@ namespace SNNLib
         //basically run the next events in Messages in a while.
         public void run() //TODO pass the output layer?
         {
-            bool exit = false;
-            while(exit == false)
-            {
-                messageHandling.RunEventsAtCurrentTime(); //TODO is this done?
-            }
+            //remember to initialise input before using it. Input/Output is determined outside of Library
+
+            while(messageHandling.RunEventsAtCurrentTime()) //loop round current 'events' continuously
+            { }
+
+            //remember to get output
         }
 
         public FeedForwardNetwork(int[] layers)
@@ -74,7 +67,7 @@ namespace SNNLib
                     foreach(Node prev_node in prev_layer)
                     {
                         //setup the synapses
-                        Synapse s = new Synapse(prev_node, hidden);
+                        Synapse s = new Synapse(messageHandling, prev_node, hidden);
                         hidden.addSource(s);
                         prev_node.addTarget(s);
                     }
@@ -97,7 +90,7 @@ namespace SNNLib
                 foreach(Node prev_node in prev_layer) //for each node in the last layer
                 {
                     //setup the synapses
-                    Synapse s = new Synapse(prev_node, outnode);
+                    Synapse s = new Synapse(messageHandling, prev_node, outnode);
                     outnode.addSource(s);
                     prev_node.addTarget(s);
                 }
