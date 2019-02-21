@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SNNLib
 {
     public class MessageHandling
     {
-        //TODO catch all events from synapses
-        //TODO at right time, filter event queue 
 
-        private List<Message> eventList = new List<Message>();
-        private List<Message> output = new List<Message>();
+        private List<DoubleMessage> eventList = new List<DoubleMessage>();
+        private List<DoubleMessage> output = new List<DoubleMessage>();
 
         public bool RunEventsAtCurrentTime()
         {
@@ -40,10 +35,10 @@ namespace SNNLib
 
         public void addMessage(int time, Node target, Object data)
         {
-            addMessage(new Message(time, target, data));
+            addMessage(new DoubleMessage(time, target, data));
         }
 
-        public void addMessage(Message message)
+        public void addMessage(DoubleMessage message)
         {
             //insert at start
             eventList.Insert(0, message);
@@ -54,7 +49,7 @@ namespace SNNLib
                 if (eventList[index - 1].Time > eventList[index].Time)
                 {
                     //swap
-                    Message temp = eventList[index - 1];
+                    DoubleMessage temp = eventList[index - 1];
                     eventList[index - 1] = eventList[index];
                     eventList[index] = temp;
                 }
@@ -66,20 +61,21 @@ namespace SNNLib
             }
         }
 
-        public List<Message> getOutput()
+        public List<DoubleMessage> getOutput()
         {
             return output;
         }
 
     }
 
-    public class Message
+    //TODO comments
+    public class DoubleMessage
     {
         public int Time { get; private set; }
         public Node NodeToCommunicate { get; private set; }
-        public Object Data { get; private set; }//TODO do I really just want an int/double?
+        public Object Data { get; private set; }
 
-        public Message(int time, Node node, Object data)
+        public DoubleMessage(int time, Node node, Object data)
         {
             Time = time;
             NodeToCommunicate = node;
@@ -96,8 +92,8 @@ namespace SNNLib
     }
 
     //used for storing any output.
-    public class OutputMessage : Message
+    public class OutputDoubleMessage : DoubleMessage
     {
-        public OutputMessage(int time,Node node, Object data) : base(time, node, data) { }
+        public OutputDoubleMessage(int time,Node node, Object data) : base(time, node, data) { }
     }
 }

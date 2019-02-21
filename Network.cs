@@ -10,9 +10,6 @@ namespace SNNLib
     /* TODOs:
     * 
     * backpropagation
-    * forward pass calculations
-    * 
-    * 
     * 
     */
 
@@ -26,21 +23,21 @@ namespace SNNLib
         public MessageHandling messageHandling = new MessageHandling();
 
         //every network will be run with a game like loop
-        //basically run the next events in Messages in a while.
-        public void run() //TODO pass the output layer?
+        //Input/Output is determined outside of Library
+        public void run()
         {
-            //remember to initialise input before using it. Input/Output is determined outside of Library
+            //remember to initialise input before using it. 
 
-            while(messageHandling.RunEventsAtCurrentTime()) //loop round current 'events' continuously
+            while(messageHandling.RunEventsAtCurrentTime()) //loop round current 'events' till none left
             { }
 
             //remember to get output
         }
 
+        //layers[] stores the size of each layer - each layer is fully connected to the next one
         public FeedForwardNetwork(int[] layers)
         {
             int last_hidden = layers.Length - 1;
-            //layers[] stores the size of each layer - each layer is fully connected to the next one
 
             //setup of Network
 
@@ -49,7 +46,7 @@ namespace SNNLib
             //setup input layer
             for (int node_count = 0 ; node_count < layers[0]; node_count++)
             {
-                InputNode node = new InputNode();
+                LIFNode node = new LIFNode();
                 prev_layer.Add(node);
                 InputNodes.Add(node);
             }
@@ -61,7 +58,7 @@ namespace SNNLib
                 //setup hidden layer & connections to input layer
                 for (int node_count = 0; node_count < layers[hidden_layer_count]; node_count++)
                 {
-                    FFHiddenNode hidden = new FFHiddenNode();
+                    LIFNode hidden = new LIFNode();
 
                     //make synapse connections
                     foreach(Node prev_node in prev_layer)
@@ -82,7 +79,7 @@ namespace SNNLib
             }
 
             //setup output layer
-            for (int node_count = 0; node_count < layers[layers.Length -1]; node_count++) //TODO not layers.length
+            for (int node_count = 0; node_count < layers[last_hidden]; node_count++)
             {
                 OutputNode outnode = new OutputNode();
 

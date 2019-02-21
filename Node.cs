@@ -15,18 +15,17 @@ namespace SNNLib
 
         public int Delay = 0;
 
-        public void sendData(Message tx)
+        public void sendData(DoubleMessage tx)
         {
-            //TODO do stuff with data
             foreach(Synapse output in Outputs)
             {
-                output.sendMessage(new Message(tx.Time + Delay,null,tx.Data)); //null because we havent stored the actual Node.
+                output.sendMessage(new DoubleMessage(tx.Time + Delay,null,tx.Data)); //null because we havent stored the actual Node.
             }
         }
 
-        public void receiveData(Message rx)
+        public void receiveData(DoubleMessage rx)
         {
-            sendData(rx);//for a general node automatically just pass it on.
+            sendData(rx);//for an example just pass data on.
         }
 
         public void addSource(Synapse source)
@@ -47,22 +46,15 @@ namespace SNNLib
 
     }
 
-    public class InputNode : Node
-    {
-        //TODO input from some datastructure
-
-    }
-
-    public class FFHiddenNode : Node
-    {
-        public int layer { private set; get; } //property to help visualise layers
-
-        //TODO //implent spiking function
-    }
-
     public class OutputNode : Node
     {
-
+        public void sendData(OutputDoubleMessage tx)
+        {
+            foreach (Synapse output in Outputs)
+            {
+                output.sendMessage(new OutputDoubleMessage(tx.Time + Delay, null, tx.Data)); //null because we havent stored the actual Node.
+            }
+        }
         //TODO output to some datastructure 
     }
 
@@ -72,20 +64,29 @@ namespace SNNLib
 
         //TODO this needs to be made better/again - currently for initial testing.
 
-        int CurrentValue = 0;
+        double CurrentValue = 0;
         int CurrentTime = 0; //time that the currentvalue was at. need to 'leak' current value before doing anything else
-        int Threshold = 10; //if neuron exceeds this value then it spikes
-        int output = 1; //designated output value
-        int leakiness = 1; // how much 'value' node looses per time unit
+        double Threshold = 10; //if neuron exceeds this value then it spikes
+        double output = 1; //designated output value
+        double leakiness = 1; // how much 'value' node looses per time unit
+        int delay = 1;
        
-        public void receiveData(Message rx)
+        public void receiveData(DoubleMessage rx)
         {
             //TODO get weighted pulse from Synapse
             //TODO work out actual current
             int time_difference = rx.Time - CurrentTime;
             CurrentValue -= leakiness * time_difference; //TODO use non-linear decay (also use doubles)
             CurrentValue = (CurrentValue < 0)? 0: CurrentValue; //ensure CurrentValue doesn't go below 0
-            CurrentTime = rx.Time;
+            CurrentTime = rx.Time + delay;
+
+            CurrentValue += rx.Data; //TODO just make it LIFMessage?
+            if (CurrentValue >= Threshold)
+            {
+                sendData(new DoubleMessage(CurrentTime, null, output));
+                CurrentValue = 0;
+            }
+
         }
 
         //public void sendData(Message tx) //TODO is this changed?
