@@ -47,7 +47,7 @@ namespace SNNLib
             //setup input layer
             for (int node_count = 0 ; node_count < layers[0]; node_count++)
             {
-                LeakyIntegrateFireNode node = new LeakyIntegrateFireNode();
+                LeakyIntegrateFireNode node = new LeakyIntegrateFireNode(messageHandling);
                 prev_layer.Add(node);
                 InputNodes.Add(node);
             }
@@ -59,15 +59,14 @@ namespace SNNLib
                 //setup hidden layer & connections to input layer
                 for (int node_count = 0; node_count < layers[hidden_layer_count]; node_count++)
                 {
-                    LeakyIntegrateFireNode hidden = new LeakyIntegrateFireNode();
+                    LeakyIntegrateFireNode hidden = new LeakyIntegrateFireNode(messageHandling);
 
                     //make synapse connections
                     foreach(Node prev_node in prev_layer)
                     {
-                        //setup the synapses
-                        Synapse s = new Synapse(messageHandling, prev_node, hidden);
-                        hidden.addSource(s);
-                        prev_node.addTarget(s);
+                        //setup the connections
+                        prev_node.addTarget(hidden);
+                        hidden.addSource(new NodeWeight(prev_node, 1));
                     }
 
                     temp_layer.Add(hidden);
@@ -82,22 +81,21 @@ namespace SNNLib
             //setup output layer
             for (int node_count = 0; node_count < layers[last_hidden]; node_count++)
             {
-                OutputNode outnode = new OutputNode();
+                OutputNode outnode = new OutputNode(messageHandling);
 
                 //make synapse connections
                 foreach(Node prev_node in prev_layer) //for each node in the last layer
                 {
-                    //setup the synapses
-                    Synapse s = new Synapse(messageHandling, prev_node, outnode);
-                    outnode.addSource(s);
-                    prev_node.addTarget(s);
+                    //setup the connections
+                    prev_node.addTarget(outnode);
+                    outnode.addSource(new NodeWeight(prev_node, 1));
                 }
 
                 OutputNodes.Add(outnode);
             }
         }
         //backpropagation type training for temporal encoded LeakyIntegrateFireNodes
-        public void train(List<DoubleMessage[]> trainingData)
+        public void train(List<Message[]> trainingData)
         {
             messageHandling.CurrentlyTraining = true; //tell messagehander training is happening
 
@@ -108,7 +106,7 @@ namespace SNNLib
             {
                 messageHandling.resetLists();
                 //setup input
-                foreach (DoubleMessage inputMessage in trainingData[data_count])
+                foreach (Message inputMessage in trainingData[data_count])
                 {
                     messageHandling.addMessage(inputMessage);
                 }

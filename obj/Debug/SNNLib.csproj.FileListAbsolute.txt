@@ -8,3 +8,5 @@ D:\Coding Projects\VisualStudio\SNNLib\obj\Debug\SNNLib.csprojResolveAssemblyRef
 D:\Coding Projects\VisualStudio\SNNLib\obj\Debug\SNNLib.csproj.CoreCompileInputs.cache
 D:\Coding Projects\VisualStudio\SNNLib\obj\Debug\SNNLib.dll
 D:\Coding Projects\VisualStudio\SNNLib\obj\Debug\SNNLib.pdb
+D:\Coding Projects\VisualStudio\SNNLib\bin\Debug\SNNLib.dll
+D:\Coding Projects\VisualStudio\SNNLib\bin\Debug\SNNLib.pdb

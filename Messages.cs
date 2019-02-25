@@ -7,10 +7,10 @@ namespace SNNLib
     {
 
         public bool CurrentlyTraining = false;
-        private List<DoubleMessage> trainingList = new List<DoubleMessage>();
+        private List<Message> trainingList = new List<Message>();
 
-        private List<DoubleMessage> eventList = new List<DoubleMessage>();
-        private List<DoubleMessage> output = new List<DoubleMessage>();
+        private List<Message> eventList = new List<Message>();
+        private List<Message> output = new List<Message>();
 
         public bool RunEventsAtCurrentTime()
         {
@@ -25,7 +25,7 @@ namespace SNNLib
 
             do
             {
-                eventList[0].NodeToCommunicate.receiveData(eventList[0]); //pass the message to the next node
+                eventList[0].NodeToCommunicate.ReceiveData(eventList[0]); //pass the message to the next node
 
                 eventList.RemoveAt(0); //remove the first item as the message is sent
 
@@ -36,16 +36,16 @@ namespace SNNLib
             return true;
         }
 
-        public void addDoubleMessage(int time, Node target, double data)
+        public void addMessage(int time, Node target)
         {
-            addMessage(new DoubleMessage(time, target, data));
+            addMessage(new Message(time, target));
             if (CurrentlyTraining)
             {
-                trainingList.Add new DoubleMessage(time, target, data);
+                trainingList.Add(new Message(time, target));
             }
         }
 
-        public void addMessage(DoubleMessage message)
+        public void addMessage(Message message)
         {
             //insert at start
             eventList.Insert(0, message);
@@ -56,7 +56,7 @@ namespace SNNLib
                 if (eventList[index - 1].Time > eventList[index].Time)
                 {
                     //swap
-                    DoubleMessage temp = eventList[index - 1];
+                    Message temp = eventList[index - 1];
                     eventList[index - 1] = eventList[index];
                     eventList[index] = temp;
                 }
@@ -68,13 +68,13 @@ namespace SNNLib
             }
         }
 
-        public List<DoubleMessage> getOutput()
+        public List<Message> getOutput()
         {
             return output;
         }
 
         //give list of all messages passed
-        public List<DoubleMessage> getTrainingOutput()
+        public List<Message> getTrainingOutput()
         {
             return trainingList;
         }
@@ -82,25 +82,23 @@ namespace SNNLib
         //performs action of cleaning input/output. allows user to pull output and THEN clean outputs.
         public void resetLists()
         {
-            trainingList = new List<DoubleMessage>();            
-            eventList = new List<DoubleMessage>();
-            output = new List<DoubleMessage>();
+            trainingList = new List<Message>();            
+            eventList = new List<Message>();
+            output = new List<Message>();
         }
 
     }
 
     //TODO comments
-    public class DoubleMessage
+    public class Message
     {
         public int Time { get; private set; }
         public Node NodeToCommunicate { get; private set; }
-        public double Data { get; private set; } //TODO data not useful - remove?
 
-        public DoubleMessage(int time, Node node, double data)
+        public Message(int time, Node node)
         {
             Time = time;
             NodeToCommunicate = node;
-            Data = data;
         }
 
         public void SetNode(Node target)
@@ -113,8 +111,8 @@ namespace SNNLib
     }
 
     //used for storing any output.
-    public class OutputDoubleMessage : DoubleMessage
+    public class OutputDoubleMessage : Message
     {
-        public OutputDoubleMessage(int time,Node node, double data) : base(time, node, data) { }
+        public OutputDoubleMessage(int time,Node node, double data) : base(time, node) { }
     }
 }

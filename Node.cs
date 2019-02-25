@@ -10,30 +10,39 @@ namespace SNNLib
     {
         //Each node contains the snapses that go from it to other nodes.
         protected double Bias = 0; //same as weights - needs to not be a double?
-        protected List<Synapse> Inputs = new List<Synapse>();
-        protected List<Synapse> Outputs = new List<Synapse>();
+        protected List<NodeWeight> Inputs = new List<NodeWeight>();
+        protected List<Node> Outputs = new List<Node>();
 
-        public int Delay = 0;
+        protected MessageHandling messageHandler;
 
-        public void sendData(DoubleMessage tx)
+        protected int Delay = 0;
+
+        public Node(MessageHandling h)
         {
-            foreach(Synapse output in Outputs)
+            messageHandler = h;
+            Bias = 1; //should be randomised
+            Delay = 0;
+        }
+
+        public void sendData(Message tx)
+        {
+            foreach(Node output in Outputs)
             {
-                output.sendMessage(new DoubleMessage(tx.Time + Delay,null,tx.Data)); //null because we havent stored the actual Node.
+                messageHandler.addMessage(tx.Time + Delay, output);
             }
         }
 
-        public void receiveData(DoubleMessage rx)
+        public void ReceiveData(Message rx)
         {
             sendData(rx);//for an example just pass data on.
         }
 
-        public void addSource(Synapse source)
+        public void addSource(NodeWeight source)
         {
             Inputs.Add(source);
         }
 
-        public void addTarget(Synapse target)
+        public void addTarget(Node target)
         {
             Outputs.Add(target);
         }
@@ -48,45 +57,44 @@ namespace SNNLib
 
     public class OutputNode : Node
     {
+        public OutputNode(MessageHandling h) : base(h) { }
+
         public void sendData(OutputDoubleMessage tx)
         {
-            foreach (Synapse output in Outputs)
+            foreach (Node output in Outputs)
             {
-                output.sendMessage(new OutputDoubleMessage(tx.Time + Delay, null, tx.Data)); //null because we havent stored the actual Node.
+                //output.sendMessage(new OutputDoubleMessage(tx.Time + Delay, null, tx.Data)); //null because we havent stored the actual Node.
             }
         }
-        //TODO output to some datastructure 
     }
 
     public class LeakyIntegrateFireNode : Node
     {
+        public LeakyIntegrateFireNode(MessageHandling h) : base(h) { }
+
         //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
 
-        //TODO this needs to be made better/again - currently for initial testing.
-
-        double CurrentValue = 0;
+        double Potential = 0;
         int CurrentTime = 0; //time that the currentvalue was at. need to 'leak' current value before doing anything else
         double Threshold = 10; //if neuron exceeds this value then it spikes
-        double output = 1; //designated output value
         double leakiness = 1; // how much 'value' node looses per time unit
         int delay = 1;
        
         //TODO add node internal function
-
-        public void receiveData(DoubleMessage rx)
+        public new void ReceiveData(Message rx)
         {
             //TODO get weighted pulse from Synapse
             //TODO work out actual current
             int time_difference = rx.Time - CurrentTime;
-            CurrentValue -= leakiness * time_difference; //TODO use non-linear decay (also use doubles)
-            CurrentValue = (CurrentValue < 0)? 0: CurrentValue; //ensure CurrentValue doesn't go below 0
+            Potential -= leakiness * time_difference; //TODO use non-linear decay (also use doubles)
+            Potential = (Potential < 0)? 0: Potential; //ensure CurrentValue doesn't go below 0
             CurrentTime = rx.Time + delay;
 
-            CurrentValue += rx.Data; //TODO just make it LIFMessage?
-            if (CurrentValue >= Threshold)
+            //CurrentValue += rx.Data; //TODO just make it LIFMessage?
+            if (Potential >= Threshold)
             {
-                sendData(new DoubleMessage(CurrentTime, null, output));
-                CurrentValue = 0;
+                sendData(new Message(CurrentTime, null));
+                Potential = 0;
             }
 
         }
@@ -94,4 +102,21 @@ namespace SNNLib
         //public void sendData(Message tx) //TODO is this changed?
 
     }
+
+    public class NodeWeight
+    {
+        //store the associated weight on the input edge
+        //public for ease
+        //will store any child of Node
+        public Node node;
+        public double weight;
+
+        //default weight of 1
+        public NodeWeight(Node n, double w = 1)
+        {
+            node = n;
+            weight = w;
+        }
+    }
+
 }

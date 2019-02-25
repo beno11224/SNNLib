@@ -46,7 +46,6 @@
     <Compile Include="Messages.cs" />
     <Compile Include="Network.cs" />
     <Compile Include="Node.cs" />
-    <Compile Include="Synapse.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
