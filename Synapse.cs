@@ -21,6 +21,7 @@ namespace SNNLib
             Target = target;
             Weight = 1; //start with weight of 1 - should be randomised in child classes
             Delay = 0;  //automatically zero delay - add this in if otherwise required.
+
         }
 
         public void sendMessage(DoubleMessage rx)

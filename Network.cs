@@ -10,6 +10,7 @@ namespace SNNLib
     /* TODOs:
     * 
     * backpropagation
+    * store forward pass vars
     * 
     */
 
@@ -46,7 +47,7 @@ namespace SNNLib
             //setup input layer
             for (int node_count = 0 ; node_count < layers[0]; node_count++)
             {
-                LIFNode node = new LIFNode();
+                LeakyIntegrateFireNode node = new LeakyIntegrateFireNode();
                 prev_layer.Add(node);
                 InputNodes.Add(node);
             }
@@ -58,7 +59,7 @@ namespace SNNLib
                 //setup hidden layer & connections to input layer
                 for (int node_count = 0; node_count < layers[hidden_layer_count]; node_count++)
                 {
-                    LIFNode hidden = new LIFNode();
+                    LeakyIntegrateFireNode hidden = new LeakyIntegrateFireNode();
 
                     //make synapse connections
                     foreach(Node prev_node in prev_layer)
@@ -93,6 +94,33 @@ namespace SNNLib
                 }
 
                 OutputNodes.Add(outnode);
+            }
+        }
+        //backpropagation type training for temporal encoded LeakyIntegrateFireNodes
+        public void train(List<DoubleMessage[]> trainingData)
+        {
+            messageHandling.CurrentlyTraining = true; //tell messagehander training is happening
+
+            int data_len = trainingData.Count;
+
+            //do training
+            for (int data_count = 0; data_count < data_len; data_count++)
+            {
+                messageHandling.resetLists();
+                //setup input
+                foreach (DoubleMessage inputMessage in trainingData[data_count])
+                {
+                    messageHandling.addMessage(inputMessage);
+                }
+
+                //forward pass
+                //List<DoubleMessage> training_output = run(); //TODO store all events
+
+                //for () all of the output FOR ALL LAYERS
+                    //reason you use all of the events is because BACKPROPAGATION - need to compare the END potential to DESIRED end potential
+
+                //backwards pass
+                    //do it
             }
         }
     }

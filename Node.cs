@@ -58,7 +58,7 @@ namespace SNNLib
         //TODO output to some datastructure 
     }
 
-    public class LIFNode : Node
+    public class LeakyIntegrateFireNode : Node
     {
         //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
 
@@ -71,6 +71,8 @@ namespace SNNLib
         double leakiness = 1; // how much 'value' node looses per time unit
         int delay = 1;
        
+        //TODO add node internal function
+
         public void receiveData(DoubleMessage rx)
         {
             //TODO get weighted pulse from Synapse

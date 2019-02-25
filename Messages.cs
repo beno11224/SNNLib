@@ -6,6 +6,9 @@ namespace SNNLib
     public class MessageHandling
     {
 
+        public bool CurrentlyTraining = false;
+        private List<DoubleMessage> trainingList = new List<DoubleMessage>();
+
         private List<DoubleMessage> eventList = new List<DoubleMessage>();
         private List<DoubleMessage> output = new List<DoubleMessage>();
 
@@ -33,9 +36,13 @@ namespace SNNLib
             return true;
         }
 
-        public void addMessage(int time, Node target, Object data)
+        public void addDoubleMessage(int time, Node target, double data)
         {
             addMessage(new DoubleMessage(time, target, data));
+            if (CurrentlyTraining)
+            {
+                trainingList.Add new DoubleMessage(time, target, data);
+            }
         }
 
         public void addMessage(DoubleMessage message)
@@ -66,6 +73,20 @@ namespace SNNLib
             return output;
         }
 
+        //give list of all messages passed
+        public List<DoubleMessage> getTrainingOutput()
+        {
+            return trainingList;
+        }
+
+        //performs action of cleaning input/output. allows user to pull output and THEN clean outputs.
+        public void resetLists()
+        {
+            trainingList = new List<DoubleMessage>();            
+            eventList = new List<DoubleMessage>();
+            output = new List<DoubleMessage>();
+        }
+
     }
 
     //TODO comments
@@ -73,9 +94,9 @@ namespace SNNLib
     {
         public int Time { get; private set; }
         public Node NodeToCommunicate { get; private set; }
-        public Object Data { get; private set; }
+        public double Data { get; private set; } //TODO data not useful - remove?
 
-        public DoubleMessage(int time, Node node, Object data)
+        public DoubleMessage(int time, Node node, double data)
         {
             Time = time;
             NodeToCommunicate = node;
@@ -94,6 +115,6 @@ namespace SNNLib
     //used for storing any output.
     public class OutputDoubleMessage : DoubleMessage
     {
-        public OutputDoubleMessage(int time,Node node, Object data) : base(time, node, data) { }
+        public OutputDoubleMessage(int time,Node node, double data) : base(time, node, data) { }
     }
 }
