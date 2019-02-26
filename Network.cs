@@ -14,7 +14,7 @@ namespace SNNLib
     * 
     */
 
-    public class FeedForwardNetwork
+    public class LeakyIntegrateFireNetwork
     {
         //standard FeedForward Network
         List<Node> InputNodes = new List<Node>();
@@ -23,19 +23,34 @@ namespace SNNLib
 
         public MessageHandling messageHandling = new MessageHandling();
 
-        public void run()
+        public List<Message> Run(List<Message> input, bool training = false)
         {
-            //remember to initialise input before using it. 
+            //setup inputs
+            messageHandling.resetLists();
+            messageHandling.CurrentlyTraining = training;
+            foreach (Message m in input)
+            {
+                messageHandling.addMessage(m);
+            }
 
             //loop round current 'events' till none left
-            while (messageHandling.RunEventsAtCurrentTime()) 
+            while (messageHandling.RunEventsAtNextTime()) 
             { }
 
-            //remember to get output
+            //output
+            if (!training)
+            {
+                return messageHandling.getOutput();
+            }
+            else
+            {
+                //if training more than just output is needed
+                return messageHandling.getTrainingOutput();
+            }
         }
 
         //layers[] stores the size of each layer - each layer is fully connected to the next one
-        public FeedForwardNetwork(int[] layers)
+        public LeakyIntegrateFireNetwork(int[] layers)
         {
             int last_hidden = layers.Length - 1;
 
@@ -93,8 +108,9 @@ namespace SNNLib
                 OutputNodes.Add(outnode);
             }
         }
+
         //backpropagation type training for temporal encoded LeakyIntegrateFireNodes
-        public void train(List<Message[]> trainingData)
+        public void train(List<List<Message>> trainingData)
         {
             //tell messagehander training is happening
             messageHandling.CurrentlyTraining = true; 
@@ -104,15 +120,8 @@ namespace SNNLib
             //do training
             for (int data_count = 0; data_count < data_len; data_count++)
             {
-                messageHandling.resetLists();
-                //setup input
-                foreach (Message inputMessage in trainingData[data_count])
-                {
-                    messageHandling.addMessage(inputMessage);
-                }
-
-                //forward pass
-                //List<DoubleMessage> training_output = run(); //TODO store all events
+                //do the forward pass
+                List<Message> output = Run(trainingData[data_count], training:true);
 
                 //for () all of the output FOR ALL LAYERS
                     //reason you use all of the events is because BACKPROPAGATION - need to compare the END potential to DESIRED end potential

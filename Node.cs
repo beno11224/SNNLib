@@ -28,7 +28,7 @@ namespace SNNLib
         {
             foreach (Synapse output in Outputs)
             {
-                messageHandler.addMessage(time + Delay, output);
+                messageHandler.addMessage(new Message(time + Delay, output));
             }
         }
 
@@ -59,12 +59,12 @@ namespace SNNLib
     {
         public OutputNode(MessageHandling h) : base(h) { }
 
-        public void sendData(OutputDoubleMessage tx)
+        public void sendData(OutputMessage tx)
         {
             foreach (Synapse output in Outputs)
             {
                 //TODO output data - where does this go?
-                output.Target.ReceiveData(new OutputDoubleMessage(tx.Time + Delay, output)); //null because we havent stored the actual Node.
+                output.Target.ReceiveData(new OutputMessage(tx.Time + Delay, output)); //null because we havent stored the actual Node.
             }
         }
     }
@@ -82,7 +82,6 @@ namespace SNNLib
         double LeakTime = 30; //time for neuron to leak
         int delay = 1;
        
-        //TODO add node internal function
         public new void ReceiveData(Message rx)
         {
             int time_diff = rx.Time - CurrentTime;

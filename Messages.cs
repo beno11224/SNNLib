@@ -12,7 +12,7 @@ namespace SNNLib
         private List<Message> eventList = new List<Message>();
         private List<Message> output = new List<Message>();
 
-        public bool RunEventsAtCurrentTime()
+        public bool RunEventsAtNextTime()
         {
             if (eventList.Count == 0)
             {
@@ -36,38 +36,44 @@ namespace SNNLib
             return true;
         }
 
-        public void addMessage(int time, Synapse synapse)
-        {
-            addMessage(new Message(time, synapse));
-            if (CurrentlyTraining)
-            {
-                trainingList.Add(new Message(time, synapse));
-            }
-        }
-
         public void addMessage(Message message)
         {
-            //insert at start
-            eventList.Insert(0, message);
-
-            //one iteration of 'bubble sort' to move the only out of place element (the one just added) to the correct place.
-            for (int index = 1; index < eventList.Count; index ++)
+            if (CurrentlyTraining)
             {
-                if (eventList[index - 1].Time > eventList[index].Time)
+                trainingList.Add(message);
+            }
+
+            if (message.GetType().Equals(typeof(OutputMessage))) //TODO does this work???
+            {
+                output.Add(message);
+            }
+            else
+            {
+                //insert at start
+                eventList.Insert(0, message);
+
+
+
+                //one iteration of 'bubble sort' to move the only out of place element (the one just added) to the correct place.
+                for (int index = 1; index < eventList.Count; index++)
                 {
-                    //swap
-                    Message temp = eventList[index - 1];
-                    eventList[index - 1] = eventList[index];
-                    eventList[index] = temp;
-                }
-                else
-                {
-                    //sorted
-                    break;
+                    if (eventList[index - 1].Time > eventList[index].Time)
+                    {
+                        //swap
+                        Message temp = eventList[index - 1];
+                        eventList[index - 1] = eventList[index];
+                        eventList[index] = temp;
+                    }
+                    else
+                    {
+                        //sorted
+                        break;
+                    }
                 }
             }
         }
 
+        //just give contents of output list
         public List<Message> getOutput()
         {
             return output;
@@ -89,9 +95,10 @@ namespace SNNLib
 
     }
 
-    //TODO comments
+    //store time and the synapse the message was sent over
     public class Message
     {
+        //can only be set privately, but got publicly
         public int Time { get; private set; }
         public Synapse sYnapse { get; private set; }
 
@@ -102,9 +109,9 @@ namespace SNNLib
         }
     }
 
-    //used for storing any output.
-    public class OutputDoubleMessage : Message
+    //used for storing output.
+    public class OutputMessage : Message
     {
-        public OutputDoubleMessage(int time, Synapse synapse) : base(time, synapse) { }
+        public OutputMessage(int time, Synapse synapse) : base(time, synapse) { }
     }
 }
