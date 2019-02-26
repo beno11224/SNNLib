@@ -63,8 +63,9 @@ namespace SNNLib
                     foreach(Node prev_node in prev_layer)
                     {
                         //setup the connections between the nodes
-                        prev_node.addTarget(hidden);
-                        hidden.addSource(new NodeWeight(prev_node, 1));
+                        Synapse s = new Synapse(prev_node, hidden, 1);
+                        prev_node.addTarget(s);
+                        hidden.addSource(s);
                     }
 
                     temp_layer.Add(hidden);
@@ -84,8 +85,9 @@ namespace SNNLib
                 foreach(Node prev_node in prev_layer)
                 {
                     //setup the connections between the nodes
-                    prev_node.addTarget(outnode);
-                    outnode.addSource(new NodeWeight(prev_node, 1));
+                    Synapse s = new Synapse(prev_node, outnode, 1);
+                    prev_node.addTarget(s);
+                    outnode.addSource(s);
                 }
 
                 OutputNodes.Add(outnode);

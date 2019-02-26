@@ -25,7 +25,7 @@ namespace SNNLib
 
             do
             {
-                eventList[0].TargetNode.ReceiveData(eventList[0]); //pass the message to the next node
+                eventList[0].sYnapse.Target.ReceiveData(eventList[0]); //pass the message to the next node
 
                 eventList.RemoveAt(0); //remove the first item as the message is sent
 
@@ -36,12 +36,12 @@ namespace SNNLib
             return true;
         }
 
-        public void addMessage(int time, Node target, Node source)
+        public void addMessage(int time, Synapse synapse)
         {
-            addMessage(new Message(time, target, source));
+            addMessage(new Message(time, synapse));
             if (CurrentlyTraining)
             {
-                trainingList.Add(new Message(time, target, source));
+                trainingList.Add(new Message(time, synapse));
             }
         }
 
@@ -93,32 +93,18 @@ namespace SNNLib
     public class Message
     {
         public int Time { get; private set; }
-        public Node TargetNode { get; private set; }
-        public Node SourceNode { get; private set; }
+        public Synapse sYnapse { get; private set; }
 
-        public Message(int time, Node target, Node source)
+        public Message(int time, Synapse synapse)
         {
             Time = time;
-            TargetNode = target;
-            SourceNode = source;
-        }
-
-        public void SetNode(Node target = null, Node source = null)
-        {
-            if (target != null)
-            {
-                TargetNode = target;
-            }
-            if (source != null)
-            {
-                SourceNode = source;
-            }
+            sYnapse = synapse;
         }
     }
 
     //used for storing any output.
     public class OutputDoubleMessage : Message
     {
-        public OutputDoubleMessage(int time,Node target, Node source) : base(time, target, source) { }
+        public OutputDoubleMessage(int time, Synapse synapse) : base(time, synapse) { }
     }
 }

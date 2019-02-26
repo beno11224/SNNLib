@@ -10,8 +10,8 @@ namespace SNNLib
     {
         //Each node contains the snapses that go from it to other nodes.
         protected double Bias = 0; //same as weights - needs to not be a double?
-        protected List<NodeWeight> Inputs = new List<NodeWeight>();
-        protected List<Node> Outputs = new List<Node>();
+        protected List<Synapse> Inputs = new List<Synapse>();
+        protected List<Synapse> Outputs = new List<Synapse>();
 
         protected MessageHandling messageHandler;
 
@@ -24,21 +24,11 @@ namespace SNNLib
             Delay = 0;
         }
 
-        /*
-        public void sendData(Message tx)
-        {
-            foreach(Node output in Outputs)
-            {
-                messageHandler.addMessage(tx.Time + Delay, output, this);
-            }
-        }
-        */
-
         public void Spike(int time)
         {
-            foreach (Node output in Outputs)
+            foreach (Synapse output in Outputs)
             {
-                messageHandler.addMessage(time + Delay, output, this);
+                messageHandler.addMessage(time + Delay, output);
             }
         }
 
@@ -47,12 +37,12 @@ namespace SNNLib
             Spike(rx.Time);//for an example just pass data on.
         }
 
-        public void addSource(NodeWeight source)
+        public void addSource(Synapse source)
         {
             Inputs.Add(source);
         }
 
-        public void addTarget(Node target)
+        public void addTarget(Synapse target)
         {
             Outputs.Add(target);
         }
@@ -71,9 +61,10 @@ namespace SNNLib
 
         public void sendData(OutputDoubleMessage tx)
         {
-            foreach (Node output in Outputs)
+            foreach (Synapse output in Outputs)
             {
-                //output.sendMessage(new OutputDoubleMessage(tx.Time + Delay, null, tx.Data)); //null because we havent stored the actual Node.
+                //TODO output data - where does this go?
+                output.Target.ReceiveData(new OutputDoubleMessage(tx.Time + Delay, output)); //null because we havent stored the actual Node.
             }
         }
     }
@@ -99,17 +90,7 @@ namespace SNNLib
             double dynamic_weight = (time_diff < LeakTime) ? Math.Pow(time_diff / LeakTime,2) : 1; //TODO better name
             dynamic_weight = (dynamic_weight < 1) ? dynamic_weight : 1;
 
-            Potential = Potential * Math.Exp((rx.Time - CurrentTime) / MembraneResistance) + //rx.SourceNode * dynamic_weight;// + weight //TODO need weight
-            
-
-            //TODO get weighted pulse from Synapse
-            //TODO work out actual current
-            /* int time_difference = rx.Time - CurrentTime;
-                            Potential -= leakiness * time_difference; //TODO use non-linear decay (also use doubles)
-                            Potential = (Potential < 0)? 0: Potential; //ensure CurrentValue doesn't go below 0
-                            CurrentTime = rx.Time + delay;
-                            //CurrentValue += rx.Data; //TODO just make it LIFMessage?
-            */
+            Potential = Potential * Math.Exp((rx.Time - CurrentTime) / MembraneResistance) + rx.sYnapse.Weight * dynamic_weight;
 
             if (Potential >= Threshold)
             {
@@ -120,19 +101,21 @@ namespace SNNLib
         }
     }
 
-    public class NodeWeight
+    public class Synapse
     {
         //store the associated weight on the input edge
         //public for ease
         //will store any child of Node
-        public Node node;
-        public double weight;
+        public Node Source;
+        public Node Target;
+        public double Weight;
 
         //default weight of 1
-        public NodeWeight(Node n, double w = 1)
+        public Synapse(Node source, Node target, double weight = 1)
         {
-            node = n;
-            weight = w;
+            Source = source;
+            Target = target;
+            Weight = weight;
         }
     }
 
