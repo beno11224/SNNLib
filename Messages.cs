@@ -25,7 +25,7 @@ namespace SNNLib
 
             do
             {
-                eventList[0].NodeToCommunicate.ReceiveData(eventList[0]); //pass the message to the next node
+                eventList[0].TargetNode.ReceiveData(eventList[0]); //pass the message to the next node
 
                 eventList.RemoveAt(0); //remove the first item as the message is sent
 
@@ -36,12 +36,12 @@ namespace SNNLib
             return true;
         }
 
-        public void addMessage(int time, Node target)
+        public void addMessage(int time, Node target, Node source)
         {
-            addMessage(new Message(time, target));
+            addMessage(new Message(time, target, source));
             if (CurrentlyTraining)
             {
-                trainingList.Add(new Message(time, target));
+                trainingList.Add(new Message(time, target, source));
             }
         }
 
@@ -93,19 +93,25 @@ namespace SNNLib
     public class Message
     {
         public int Time { get; private set; }
-        public Node NodeToCommunicate { get; private set; }
+        public Node TargetNode { get; private set; }
+        public Node SourceNode { get; private set; }
 
-        public Message(int time, Node node)
+        public Message(int time, Node target, Node source)
         {
             Time = time;
-            NodeToCommunicate = node;
+            TargetNode = target;
+            SourceNode = source;
         }
 
-        public void SetNode(Node target)
+        public void SetNode(Node target = null, Node source = null)
         {
             if (target != null)
             {
-                NodeToCommunicate = target;
+                TargetNode = target;
+            }
+            if (source != null)
+            {
+                SourceNode = source;
             }
         }
     }
@@ -113,6 +119,6 @@ namespace SNNLib
     //used for storing any output.
     public class OutputDoubleMessage : Message
     {
-        public OutputDoubleMessage(int time,Node node, double data) : base(time, node) { }
+        public OutputDoubleMessage(int time,Node target, Node source) : base(time, target, source) { }
     }
 }

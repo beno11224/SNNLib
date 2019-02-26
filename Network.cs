@@ -23,13 +23,12 @@ namespace SNNLib
 
         public MessageHandling messageHandling = new MessageHandling();
 
-        //every network will be run with a game like loop
-        //Input/Output is determined outside of Library
         public void run()
         {
             //remember to initialise input before using it. 
 
-            while(messageHandling.RunEventsAtCurrentTime()) //loop round current 'events' till none left
+            //loop round current 'events' till none left
+            while (messageHandling.RunEventsAtCurrentTime()) 
             { }
 
             //remember to get output
@@ -61,10 +60,9 @@ namespace SNNLib
                 {
                     LeakyIntegrateFireNode hidden = new LeakyIntegrateFireNode(messageHandling);
 
-                    //make synapse connections
                     foreach(Node prev_node in prev_layer)
                     {
-                        //setup the connections
+                        //setup the connections between the nodes
                         prev_node.addTarget(hidden);
                         hidden.addSource(new NodeWeight(prev_node, 1));
                     }
@@ -83,10 +81,9 @@ namespace SNNLib
             {
                 OutputNode outnode = new OutputNode(messageHandling);
 
-                //make synapse connections
-                foreach(Node prev_node in prev_layer) //for each node in the last layer
+                foreach(Node prev_node in prev_layer)
                 {
-                    //setup the connections
+                    //setup the connections between the nodes
                     prev_node.addTarget(outnode);
                     outnode.addSource(new NodeWeight(prev_node, 1));
                 }
@@ -97,7 +94,8 @@ namespace SNNLib
         //backpropagation type training for temporal encoded LeakyIntegrateFireNodes
         public void train(List<Message[]> trainingData)
         {
-            messageHandling.CurrentlyTraining = true; //tell messagehander training is happening
+            //tell messagehander training is happening
+            messageHandling.CurrentlyTraining = true; 
 
             int data_len = trainingData.Count;
 
@@ -118,7 +116,7 @@ namespace SNNLib
                     //reason you use all of the events is because BACKPROPAGATION - need to compare the END potential to DESIRED end potential
 
                 //backwards pass
-                    //do it
+                    //TODO do it
             }
         }
     }

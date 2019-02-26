@@ -24,17 +24,27 @@ namespace SNNLib
             Delay = 0;
         }
 
+        /*
         public void sendData(Message tx)
         {
             foreach(Node output in Outputs)
             {
-                messageHandler.addMessage(tx.Time + Delay, output);
+                messageHandler.addMessage(tx.Time + Delay, output, this);
+            }
+        }
+        */
+
+        public void Spike(int time)
+        {
+            foreach (Node output in Outputs)
+            {
+                messageHandler.addMessage(time + Delay, output, this);
             }
         }
 
         public void ReceiveData(Message rx)
         {
-            sendData(rx);//for an example just pass data on.
+            Spike(rx.Time);//for an example just pass data on.
         }
 
         public void addSource(NodeWeight source)
@@ -75,32 +85,39 @@ namespace SNNLib
         //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
 
         double Potential = 0;
-        int CurrentTime = 0; //time that the currentvalue was at. need to 'leak' current value before doing anything else
+        int CurrentTime = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else
         double Threshold = 10; //if neuron exceeds this value then it spikes
-        double leakiness = 1; // how much 'value' node looses per time unit
+        double MembraneResistance = 1; //the resistance to adding potential to the neuron
+        double LeakTime = 30; //time for neuron to leak
         int delay = 1;
        
         //TODO add node internal function
         public new void ReceiveData(Message rx)
         {
+            int time_diff = rx.Time - CurrentTime;
+
+            double dynamic_weight = (time_diff < LeakTime) ? Math.Pow(time_diff / LeakTime,2) : 1; //TODO better name
+            dynamic_weight = (dynamic_weight < 1) ? dynamic_weight : 1;
+
+            Potential = Potential * Math.Exp((rx.Time - CurrentTime) / MembraneResistance) + //rx.SourceNode * dynamic_weight;// + weight //TODO need weight
+            
+
             //TODO get weighted pulse from Synapse
             //TODO work out actual current
-            int time_difference = rx.Time - CurrentTime;
-            Potential -= leakiness * time_difference; //TODO use non-linear decay (also use doubles)
-            Potential = (Potential < 0)? 0: Potential; //ensure CurrentValue doesn't go below 0
-            CurrentTime = rx.Time + delay;
+            /* int time_difference = rx.Time - CurrentTime;
+                            Potential -= leakiness * time_difference; //TODO use non-linear decay (also use doubles)
+                            Potential = (Potential < 0)? 0: Potential; //ensure CurrentValue doesn't go below 0
+                            CurrentTime = rx.Time + delay;
+                            //CurrentValue += rx.Data; //TODO just make it LIFMessage?
+            */
 
-            //CurrentValue += rx.Data; //TODO just make it LIFMessage?
             if (Potential >= Threshold)
             {
-                sendData(new Message(CurrentTime, null));
+                Spike(CurrentTime);
                 Potential = 0;
             }
 
         }
-
-        //public void sendData(Message tx) //TODO is this changed?
-
     }
 
     public class NodeWeight
