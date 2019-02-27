@@ -23,7 +23,7 @@ namespace SNNLib
 
         public MessageHandling messageHandling = new MessageHandling();
 
-        public List<Message> Run(List<Message> input, bool training = false)
+        public List<Message>[] Run(List<Message> input, bool training = false)
         {
             //setup inputs
             messageHandling.resetLists();
@@ -34,18 +34,19 @@ namespace SNNLib
             }
 
             //loop round current 'events' till none left
-            while (messageHandling.RunEventsAtNextTime()) 
+            while (messageHandling.RunEventsAtNextTime()) //TODO in hardware when number of loops == number of nodes we have looped around one time. 
+                //then time can be reset to '0' and ACC is leaked. //TODO this needs to impact the simulation of Leaky in as minimal way possible.
             { }
 
             //output
             if (!training)
             {
-                return messageHandling.getOutput();
+                return new List<Message>[] { messageHandling.getOutput() };//messageHandling.getOutput() };
             }
             else
             {
                 //if training more than just output is needed
-                return messageHandling.getTrainingOutput();
+                return new List<Message>[] { messageHandling.getTrainingOutput() };
             }
         }
 
@@ -110,24 +111,40 @@ namespace SNNLib
         }
 
         //backpropagation type training for temporal encoded LeakyIntegrateFireNodes
-        public void train(List<List<Message>> trainingData)
+        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget)
         {
             //tell messagehander training is happening
             messageHandling.CurrentlyTraining = true; 
 
-            int data_len = trainingData.Count;
+            int data_len = trainingInput.Length;
 
             //do training
             for (int data_count = 0; data_count < data_len; data_count++)
             {
                 //do the forward pass
-                List<Message> output = Run(trainingData[data_count], training:true);
+                List<Message>[] output = Run(trainingInput[data_count], training:true);
 
-                //for () all of the output FOR ALL LAYERS
-                    //reason you use all of the events is because BACKPROPAGATION - need to compare the END potential to DESIRED end potential
+                for (int training_count = 0; training_count < trainingTarget.Length; training_count++) //training output should be the same length as output nodes!
+                {
+                    int target_num_spikes = trainingTarget[training_count].Count;
 
-                //backwards pass
-                    //TODO do it
+                    int actual_num_spikes = output[training_count].Count;// output.Number of Spikes for that node!;
+
+                    //change is realted to ratio of input to output for current node
+
+                    //lower layer backpropagation - do it for each Synapse, then each before that etc
+                    foreach(Synapse input in OutputNodes[training_count].Inputs) //TODO can I just do it off number of time fired?
+                    {
+                        double E = input.Source.Spikes; //- trainingTarget[;// - target;          //TODO calculate error: (t-o)^2 (squared to make it positive error) //TODO is this error in the node potential?
+                        E = E * E; //make it positive
+
+                        double delta_w = 0;
+                        input.Weight += delta_w;
+                    }
+
+                    //TODO backpropagate to lower layers
+                    //TODO remember bias
+                }
             }
         }
     }
