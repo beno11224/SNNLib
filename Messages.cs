@@ -5,10 +5,6 @@ namespace SNNLib
 {
     public class MessageHandling
     {
-
-        public bool CurrentlyTraining = false;
-        private List<Message> trainingList = new List<Message>();
-
         private List<Message> eventList = new List<Message>();
         private List<Message> output = new List<Message>();
 
@@ -38,11 +34,6 @@ namespace SNNLib
 
         public void addMessage(Message message)
         {
-            if (CurrentlyTraining)
-            {
-                trainingList.Add(message);
-            }
-
             if (message.GetType().Equals(typeof(OutputMessage))) //TODO does this work???
             {
                 output.Add(message);
@@ -79,16 +70,9 @@ namespace SNNLib
             return output;
         }
 
-        //give list of all messages passed
-        public List<Message> getTrainingOutput()
-        {
-            return trainingList;
-        }
-
         //performs action of cleaning input/output. allows user to pull output and THEN clean outputs.
         public void resetLists()
         {
-            trainingList = new List<Message>();            
             eventList = new List<Message>();
             output = new List<Message>();
         }

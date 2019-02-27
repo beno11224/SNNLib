@@ -18,9 +18,10 @@ namespace SNNLib
         protected int Delay = 0;
         
         public double LastDeltaI = 0;
+        public bool CurrentlyTraining = false;
 
-        List<Message> InputMessages = new List<Message>();
-        List<Message> OutputMessages = new List<Message>();
+        public List<Message> InputMessages { get; protected set; }
+        public List<Message> OutputMessages { get; protected set; }
 
         public Node(MessageHandling h)
         {
@@ -29,11 +30,18 @@ namespace SNNLib
             messageHandler = h;
             Bias = 1; //should be randomised
             Delay = 0;
+            InputMessages = new List<Message>();
+            OutputMessages = new List<Message>();
         }
 
         public void Spike(int time)
         {
-            //TODO add count for times spiked - just empty messages?
+            //TODO add count for times spiked - just one spike with the time - don't need to know where it went
+            if (CurrentlyTraining)
+            {
+                OutputMessages.Add(new Message(time, null));
+            }
+
             foreach (Synapse output in Outputs)
             {
                 messageHandler.addMessage(new Message(time + Delay, output));
@@ -48,13 +56,10 @@ namespace SNNLib
 
         public void ReceiveData(Message rx)
         {
-            InputMessages.Add(rx);
-        }
-
-        //return a sensible value if needed in derived classes
-        public double GetValue()
-        {
-            return 0;
+            if (CurrentlyTraining)
+            {
+                InputMessages.Add(rx);
+            }
         }
 
         public void addSource(Synapse source)
@@ -65,6 +70,12 @@ namespace SNNLib
         public void addTarget(Synapse target)
         {
             Outputs.Add(target);
+        }
+
+        public void ResetTrainingLists()
+        {
+            InputMessages = new List<Message>();
+            OutputMessages = new List<Message>();
         }
 
         //if user wants a static delay on the node
@@ -79,12 +90,17 @@ namespace SNNLib
     {
         public OutputNode(MessageHandling h) : base(h) { }
 
-        public void sendData(OutputMessage tx)
+        public void Spike(int time)
         {
+            //TODO add count for times spiked - just one spike with the time - don't need to know where it went
+            if (CurrentlyTraining)
+            {
+                OutputMessages.Add(new OutputMessage(time, null));
+            }
+
             foreach (Synapse output in Outputs)
             {
-                //TODO output data - where does this go?
-                output.Target.ReceiveData(new OutputMessage(tx.Time + Delay, output)); //null because we havent stored the actual Node.
+                messageHandler.addMessage(new OutputMessage(time + Delay, output));
             }
         }
     }
