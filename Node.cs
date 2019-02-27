@@ -16,10 +16,11 @@ namespace SNNLib
         protected MessageHandling messageHandler;
 
         protected int Delay = 0;
-
-        public int Spikes { get; protected set; }
-
+        
         public double LastDeltaI = 0;
+
+        List<Message> InputMessages = new List<Message>();
+        List<Message> OutputMessages = new List<Message>();
 
         public Node(MessageHandling h)
         {
@@ -28,20 +29,26 @@ namespace SNNLib
             messageHandler = h;
             Bias = 1; //should be randomised
             Delay = 0;
-            Spikes = 0;
         }
 
         public void Spike(int time)
         {
+            //TODO add count for times spiked - just empty messages?
             foreach (Synapse output in Outputs)
             {
                 messageHandler.addMessage(new Message(time + Delay, output));
             }
         }
 
+        //e.g. for LIF do the decay
+        public void PostFire()
+        {
+            
+        }
+
         public void ReceiveData(Message rx)
         {
-            Spike(rx.Time);//for an example just pass data on.
+            InputMessages.Add(rx);
         }
 
         //return a sensible value if needed in derived classes
@@ -91,9 +98,6 @@ namespace SNNLib
 
         double Accumulator = 0;
         int CurrentTime = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
-        double Threshold = 10; //if neuron exceeds this value then it spikes
-        double MembraneResistance = 1; //the resistance to adding potential to the neuron //TODO this might not be needed in code
-        double LeakTime = 30; //time for neuron to leak //TODO this might be hardcoded?
         int delay = 1; //TODO hardware not sure if this is needed?
 
         public HardwareLeakyIntegrateFireNode(MessageHandling h, int layerSize) : base(h)
@@ -101,9 +105,16 @@ namespace SNNLib
             LayerSize = layerSize;
         }
                 
+        public new void PostFire()
+        {
+            //TODO decay
+            Accumulator = Accumulator*0.9;
+        }
+
         public new void ReceiveData(Message rx)
         {
-            
+            base.ReceiveData(rx); //ensure parent method is run.
+
             if (rx.Time == LayerSize)
             {
                 //whole loop round the nodes complete, all connections made
@@ -116,14 +127,7 @@ namespace SNNLib
 
             Accumulator += rx.sYnapse.Weight;
 
-            /*
-            double dynamic_weight = (time_diff < LeakTime) ? Math.Pow(time_diff / LeakTime, 2) : 1; //TODO better name
-            dynamic_weight = (dynamic_weight < 1) ? dynamic_weight : 1;
-
-            Accumulator = Accumulator * Math.Exp((rx.Time - CurrentTime) / MembraneResistance) + rx.sYnapse.Weight * dynamic_weight;
-            */
-
-            if (Accumulator >= Threshold)
+            if (Accumulator >= Bias)
             {
                 Spike(CurrentTime);
                 Accumulator = 0; //TODO discuss - is this correct or just remove threshold from ACC?
@@ -142,9 +146,10 @@ namespace SNNLib
         double MembraneResistance = 1; //the resistance to adding potential to the neuron
         double LeakTime = 30; //time for neuron to leak
         int delay = 1;
-       
+
         public new void ReceiveData(Message rx)
         {
+            base.ReceiveData(rx); //ensure parent method is run.
             int time_diff = rx.Time - CurrentTime;
 
             double dynamic_weight = (time_diff < LeakTime) ? Math.Pow(time_diff / LeakTime,2) : 1; //TODO better name

@@ -34,9 +34,13 @@ namespace SNNLib
             }
 
             //loop round current 'events' till none left
-            while (messageHandling.RunEventsAtNextTime()) //TODO in hardware when number of loops == number of nodes we have looped around one time. 
-                //then time can be reset to '0' and ACC is leaked. //TODO this needs to impact the simulation of Leaky in as minimal way possible.
-            { }
+            while (messageHandling.RunEventsAtNextTime()) // for reference in hardware when number of loops == number of nodes we have looped around one time.
+            {
+                foreach(Node n in AllNodes)
+                {
+                    n.PostFire(); //TODO perform any after_fire(decay) functionality
+                }
+            }
 
             //output
             if (!training)
@@ -113,7 +117,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for temporal encoded LeakyIntegrateFireNodes
-        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget)
+        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 1, double eta_th = 1, double tau_mp = 1)
         {
             //tell messagehander training is happening
             messageHandling.CurrentlyTraining = true; 
@@ -160,8 +164,17 @@ namespace SNNLib
                         i.LastDeltaI = g_ratio * synapse_active_ratio * sum_weight_errors; //TODO store this in the node for safe keeping
 
 
+                        double x_i = 0;
 
-                        double change_w = 0;//TODO
+                        foreach (Message m in output[1])    //TODO iterate over all messages sent/received by that node
+                                                            //sent for weights, recieved for bias
+                        {
+                            x_i += Math.Exp((m.Time) / tau_mp); //time - currentTime
+                        }
+
+                        //TODO
+                        double change_w = eta_w * i.LastDeltaI;// * x; * N/m
+                        double change_th = eta_th * i.LastDeltaI;// * a; * N/m
                     }
 
                     //TODO break when got to input layer
