@@ -19,6 +19,8 @@ namespace SNNLib
 
         public int Spikes { get; protected set; }
 
+        public double LastDeltaI = 0;
+
         public Node(MessageHandling h)
         {
             Inputs = new List<Synapse>();

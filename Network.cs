@@ -17,9 +17,9 @@ namespace SNNLib
     public class LeakyIntegrateFireNetwork
     {
         //standard FeedForward Network
-        List<Node> InputNodes = new List<Node>();
-        List<Node> HiddenNodes = new List<Node>();
-        List<Node> OutputNodes = new List<Node>();
+        List<Node> InputNodes = new List<Node>(); //used for easy passing in
+        List<Node> AllNodes = new List<Node>(); //actually stores all nodes
+        List<Node> OutputNodes = new List<Node>(); //used for easy passing out //TODO might be worth removing this
 
         public MessageHandling messageHandling = new MessageHandling();
 
@@ -65,6 +65,7 @@ namespace SNNLib
                 LeakyIntegrateFireNode node = new LeakyIntegrateFireNode(messageHandling);
                 prev_layer.Add(node);
                 InputNodes.Add(node);
+                AllNodes.Add(node); //TODO added
             }
 
             for (int hidden_layer_count = 1; hidden_layer_count < last_hidden; hidden_layer_count++)
@@ -85,7 +86,7 @@ namespace SNNLib
                     }
 
                     temp_layer.Add(hidden);
-                    HiddenNodes.Add(hidden);
+                    AllNodes.Add(hidden); //TODO added
                 }
 
                 prev_layer.Clear();
@@ -107,6 +108,7 @@ namespace SNNLib
                 }
 
                 OutputNodes.Add(outnode);
+                AllNodes.Add(outnode);
             }
         }
 
@@ -119,11 +121,53 @@ namespace SNNLib
             int data_len = trainingInput.Length;
 
             //do training
-            for (int data_count = 0; data_count < data_len; data_count++)
+            for (int training_data_count = 0; training_data_count < data_len; training_data_count++)
             {
-                //do the forward pass
-                List<Message>[] output = Run(trainingInput[data_count], training:true);
+                //do the forward pass to get output
+                List<Message>[] output = Run(trainingInput[training_data_count], training:true);
 
+                List<Node> next_layer = new List<Node>();
+                List<Node> current_layer = OutputNodes; //TODO pass by ref/value???
+
+                double g_bar = 0;
+
+                while (true) //TODO what about output layer??
+                {
+                    foreach (Node node in current_layer) //iterate over current layer (start with 'output' nodes)
+                    {
+                        //TODO calculate everything in this layer.
+
+                        double g = 1 / node.Bias;
+                        g_bar += (g * g);
+
+                        //TODO error - done before?
+                    }
+
+                    g_bar = Math.Sqrt(g_bar / current_layer.Count); //g_bar is now useable
+
+                    foreach (Node i in current_layer) //TODO work out the CURRENT error from previous
+                    {
+                        double g_ratio = (1/i.Bias)/g_bar;
+                        double synapse_active_ratio = 1;//Math.Sqrt(total / active); //TODO assuming one for the time being
+
+                        double sum_weight_errors = 0;
+
+                        foreach(Synapse j in i.Outputs) //use j to match equations
+                        {
+                            sum_weight_errors += j.Weight * j.Target.LastDeltaI;
+                        }
+
+                        i.LastDeltaI = g_ratio * synapse_active_ratio * sum_weight_errors; //TODO store this in the node for safe keeping
+
+
+
+                        double change_w = 0;//TODO
+                    }
+
+                    //TODO break when got to input layer
+                }
+
+                /*
                 for (int training_count = 0; training_count < trainingTarget.Length; training_count++) //training output should be the same length as output nodes!
                 {
                     int target_num_spikes = trainingTarget[training_count].Count;
@@ -135,7 +179,8 @@ namespace SNNLib
                     //lower layer backpropagation - do it for each Synapse, then each before that etc
                     foreach(Synapse input in OutputNodes[training_count].Inputs) //TODO can I just do it off number of time fired?
                     {
-                        double E = input.Source.Spikes; //- trainingTarget[;// - target;          //TODO calculate error: (t-o)^2 (squared to make it positive error) //TODO is this error in the node potential?
+                        double E = target_num_spikes - actual_num_spikes;//TODO to start with assume error is just number of spikes  - is this wrong???
+                        //- trainingTarget[;// - target;          //TODO calculate error: (t-o)^2 (squared to make it positive error) //TODO is this error in the node potential?
                         E = E * E; //make it positive
 
                         double delta_w = 0;
@@ -145,6 +190,8 @@ namespace SNNLib
                     //TODO backpropagate to lower layers
                     //TODO remember bias
                 }
+                */
+
             }
         }
     }
