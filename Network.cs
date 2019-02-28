@@ -135,15 +135,18 @@ namespace SNNLib
             int data_len = trainingInput.Length;
 
             //do the forward pass to get output
-            List<Message>[] output = Run(trainingInput, training: true);
+            List<Message>[] output = Run(trainingInput, training: true); //TODO get the end time
+            int current_time = 0;
 
-            //TODO iterate backwards through layers (backpropagration)
-            while (true) //TODO what about output layer??
+            List<Node> current_layer = OutputNodes; //TODO pass by ref/value???
+
+            //iterate backwards through layers (backpropagration)
+            //iterate until no more layers
+            while (current_layer.Count > 0)
             {
-                double g_bar = 0;
                 List<Node> next_layer = new List<Node>();
-                List<Node> current_layer = OutputNodes; //TODO pass by ref/value???
-
+                double g_bar = 0;
+                
                 foreach (Node node in current_layer) //iterate over current layer (start with 'output' nodes)
                 {
                     //TODO calculate everything in this layer.
@@ -172,20 +175,26 @@ namespace SNNLib
 
 
                     double x_i = 0;
+                    double a_i = 0;
 
-                    foreach (Message m in output[1])    //TODO iterate over all messages sent/received by that node
-                                                        //sent for weights, recieved for bias
+                    foreach (Message m in i.InputMessages)    //iterate over all messages(spikes) received by that node
                     {
-                        x_i += Math.Exp((m.Time) / tau_mp); //time - currentTime
+                        x_i += Math.Exp((m.Time - current_time) / tau_mp);
                     }
 
-                    //TODO
-                    double change_w = eta_w * i.LastDeltaI;// * x; * N/m
-                    double change_th = eta_th * i.LastDeltaI;// * a; * N/m
+                    foreach (Message m in i.OutputMessages)    //iterate over all messages(spikes) sent by that node
+                    {
+                        a_i += Math.Exp((m.Time - current_time) / tau_mp);
+                    }
+
+                    //TODO - this needs to be by Synapse - where is this 'wrong'
+                    double change_w = eta_w * i.LastDeltaI * x_i; //* N/m
+                    double change_th = eta_th * i.LastDeltaI * a_i; //* N/m //TODO this is right I think?
+                    i.Bias += change_th;
+                    //TODO add change_w to 'synapse' weight - er? add to all?
                 }
 
-                //TODO break when got to input layer
-                
+                current_layer = next_layer;                
             }
         }
     }
