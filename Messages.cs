@@ -8,6 +8,8 @@ namespace SNNLib
         private List<Message> eventList = new List<Message>();
         private List<Message> output = new List<Message>();
 
+        public int max_time { private set; get; }
+
         public bool RunEventsAtNextTime()
         {
             if (eventList.Count == 0)
@@ -18,6 +20,8 @@ namespace SNNLib
 
             int current_time = eventList[0].Time; //the current time of the simulation
             int event_time;
+
+            max_time = current_time; //save the last time we ran something.
 
             do
             {
@@ -80,6 +84,7 @@ namespace SNNLib
         {
             eventList = new List<Message>();
             output = new List<Message>();
+            max_time = 0;
         }
 
     }
