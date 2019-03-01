@@ -109,7 +109,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 1, double eta_th = 1, double tau_mp = 1)
+        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.1, double eta_th = 0.1, double tau_mp = 100)
         {
             if (trainingInput.Length != InputNodes.Count || trainingTarget.Length != OutputNodes.Count)
             {
@@ -149,21 +149,44 @@ namespace SNNLib
 
                 g_bar = Math.Sqrt(g_bar / current_layer.Count); //g_bar is now useable
 
-                foreach (Node i in current_layer) //TODO work out the CURRENT error from previous
+                int output_layer_count = 0; //TODO this might get buggy - a more permanent fix is needed.
+
+                foreach (Node i in current_layer)
                 {
-                    double g_ratio = (1/i.Bias)/g_bar;
+                    double g_ratio = (1 / i.Bias) / g_bar;
                     double synapse_active_ratio = 1;//Math.Sqrt(total / active); //TODO assuming one for the time being
 
                     double sum_weight_errors = 0;
 
-                    //TODO only for fired synapses?
-                    foreach(Synapse j in i.Outputs) //use j to match equations
+                    if (current_layer != OutputNodes) //TODO test //TODO use a_i for output
                     {
-                        sum_weight_errors += j.Weight * j.Target.LastDeltaI;
-                    }
+                        //TODO only for fired synapses?
+                        foreach (Synapse j in i.Outputs) //use j to match equations
+                        {
+                            sum_weight_errors += j.Weight * j.Target.LastDeltaI;
+                        }
 
-                    i.LastDeltaI = g_ratio * synapse_active_ratio * sum_weight_errors; //TODO store this in the node for safe keeping
-                    //TODO output layer delta will be 0 in this case - need to calculate actual error at output layer and assign it.
+                        i.LastDeltaI = g_ratio * synapse_active_ratio * sum_weight_errors; //TODO store this in the node for safe keeping
+                    }
+                    else
+                    {
+                        double actual_output_a = 0;
+                        double target_output_a = 0;
+
+                        foreach (Message m in i.OutputMessages)    //iterate over all messages(spikes) sent by that node
+                        {
+                            actual_output_a += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow...
+                        }
+
+                        foreach (Message m in trainingTarget[output_layer_count]) //iterate over all target values
+                        {
+                            target_output_a += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow...
+                        }
+
+                        output_layer_count++; //TODO buggy...
+
+                        i.LastDeltaI = actual_output_a - target_output_a ; //TODO is it target- or actual-??
+                    }
 
                     foreach (Synapse j in i.Outputs) //use j to match equations
                     {
