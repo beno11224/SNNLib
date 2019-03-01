@@ -25,6 +25,11 @@ namespace SNNLib
 
                 eventList.RemoveAt(0); //remove the first item as the message is sent
 
+                if (eventList.Count == 0)
+                {
+                    return false; //eventList is empty, so network has completed.
+                }
+
                 event_time = eventList[0].Time; //grab the time of the next event
             }
             while (event_time == current_time); //keep grabbing the next event that is at the current time.
@@ -45,10 +50,10 @@ namespace SNNLib
 
 
 
-                //one iteration of 'bubble sort' to move the only out of place element (the one just added) to the correct place.
+                //one iteration of 'bubble sort' to move the only out of place element (the one just added) to the correct place. ensure it goes to the end of the possible arrangements
                 for (int index = 1; index < eventList.Count; index++)
                 {
-                    if (eventList[index - 1].Time > eventList[index].Time)
+                    if (eventList[index - 1].Time >= eventList[index].Time)
                     {
                         //swap
                         Message temp = eventList[index - 1];

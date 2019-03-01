@@ -43,16 +43,7 @@ namespace SNNLib
                 }
             }
 
-            //output
-            if (!training)
-            {
-                return new List<Message>[] { messageHandling.getOutput() };//messageHandling.getOutput() };
-            }
-            else
-            {
-                //if training more than just output is needed
-                return new List<Message>[] { null };// messageHandling.getTrainingOutput() }; //TODO
-            }
+            return new List<Message>[] { messageHandling.getOutput() };//messageHandling.getOutput() };
         }
 
         //layers[] stores the size of each layer - each layer is fully connected to the next one
@@ -67,7 +58,7 @@ namespace SNNLib
             //setup input layer
             for (int node_count = 0 ; node_count < layers[0]; node_count++)
             {
-                LeakyIntegrateFireNode node = new LeakyIntegrateFireNode(messageHandling);
+                HardwareLeakyIntegrateFireNode node = new HardwareLeakyIntegrateFireNode(messageHandling);
                 prev_layer.Add(node);
                 InputNodes.Add(node);
                 AllNodes.Add(node); //TODO added
@@ -80,7 +71,7 @@ namespace SNNLib
                 //setup hidden layer & connections to input layer
                 for (int node_count = 0; node_count < layers[hidden_layer_count]; node_count++)
                 {
-                    LeakyIntegrateFireNode hidden = new LeakyIntegrateFireNode(messageHandling);
+                    HardwareLeakyIntegrateFireNode hidden = new HardwareLeakyIntegrateFireNode(messageHandling);
 
                     foreach(Node prev_node in prev_layer)
                     {
@@ -132,8 +123,6 @@ namespace SNNLib
                 n.CurrentlyTraining = true;
             }
 
-            int data_len = trainingInput.Length;
-
             //do the forward pass to get output
             List<Message>[] output = Run(trainingInput, training: true); //TODO get the end time
             int current_time = 0;
@@ -145,6 +134,7 @@ namespace SNNLib
             while (current_layer.Count > 0)
             {
                 List<Node> next_layer = new List<Node>();
+
                 double g_bar = 0;
                 
                 foreach (Node node in current_layer) //iterate over current layer (start with 'output' nodes)
@@ -166,35 +156,41 @@ namespace SNNLib
 
                     double sum_weight_errors = 0;
 
+                    //TODO only for fired synapses?
                     foreach(Synapse j in i.Outputs) //use j to match equations
                     {
                         sum_weight_errors += j.Weight * j.Target.LastDeltaI;
                     }
 
                     i.LastDeltaI = g_ratio * synapse_active_ratio * sum_weight_errors; //TODO store this in the node for safe keeping
+                    //TODO output layer delta will be 0 in this case - need to calculate actual error at output layer and assign it.
 
-
-                    double x_i = 0;
-                    double a_i = 0;
-
-                    foreach (Message m in i.InputMessages)    //iterate over all messages(spikes) received by that node
+                    foreach (Synapse j in i.Outputs) //use j to match equations
                     {
-                        x_i += Math.Exp((m.Time - current_time) / tau_mp);
+                        double x_j = 0;
+
+                        foreach (Message m in j.Target.InputMessages)    //iterate over all messages(spikes) received by that node
+                        {
+                            x_j += Math.Exp((m.Time - current_time) / tau_mp);
+                        }
+
+                        double change_w = eta_w * i.LastDeltaI * x_j; //* N/m //TODO can't just do this here...
+                        j.Weight += change_w;
                     }
+
+                    double a_i = 0;
 
                     foreach (Message m in i.OutputMessages)    //iterate over all messages(spikes) sent by that node
                     {
-                        a_i += Math.Exp((m.Time - current_time) / tau_mp);
+                        a_i += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow...
                     }
-
-                    //TODO - this needs to be by Synapse - where is this 'wrong'
-                    double change_w = eta_w * i.LastDeltaI * x_i; //* N/m
-                    double change_th = eta_th * i.LastDeltaI * a_i; //* N/m //TODO this is right I think?
+                    
+                    double change_th = eta_th * i.LastDeltaI * a_i; //* N/m
                     i.Bias += change_th;
-                    //TODO add change_w to 'synapse' weight - er? add to all?
                 }
 
-                current_layer = next_layer;                
+                current_layer = next_layer;
+                next_layer = new List<Node>();
             }
         }
     }

@@ -29,12 +29,12 @@ namespace SNNLib
             Outputs = new List<Synapse>();
             messageHandler = h;
             Bias = 1; //should be randomised
-            Delay = 0;
+            Delay = 1;
             InputMessages = new List<Message>();
             OutputMessages = new List<Message>();
         }
 
-        public void Spike(int time)
+        public virtual void Spike(int time)
         {
             //TODO add count for times spiked - just one spike with the time - don't need to know where it went
             if (CurrentlyTraining)
@@ -49,12 +49,12 @@ namespace SNNLib
         }
 
         //e.g. for LIF do the decay
-        public void PostFire()
+        public virtual void PostFire()
         {
             
         }
 
-        public void ReceiveData(Message rx)
+        public virtual void ReceiveData(Message rx)
         {
             if (CurrentlyTraining)
             {
@@ -86,11 +86,11 @@ namespace SNNLib
 
     }
 
-    public class OutputNode : Node
+    public class OutputNode : HardwareLeakyIntegrateFireNode
     {
         public OutputNode(MessageHandling h) : base(h) { }
 
-        public void Spike(int time)
+        public override void Spike(int time)
         {
             //TODO add count for times spiked - just one spike with the time - don't need to know where it went
             if (CurrentlyTraining)
@@ -98,10 +98,10 @@ namespace SNNLib
                 OutputMessages.Add(new OutputMessage(time, null));
             }
 
-            foreach (Synapse output in Outputs)
-            {
-                messageHandler.addMessage(new OutputMessage(time + Delay, output));
-            }
+            //foreach (Synapse output in Outputs)
+            //{
+                messageHandler.addMessage(new OutputMessage(time + Delay, null));
+            //}
         }
     }
 
@@ -110,16 +110,10 @@ namespace SNNLib
         //explanation of harware implementation in report
         //used for where ALL neurons are connected.
 
-        int LayerSize;
-
         double Accumulator = 0;
         int CurrentTime = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
-        int delay = 1; //TODO hardware not sure if this is needed?
 
-        public HardwareLeakyIntegrateFireNode(MessageHandling h, int layerSize) : base(h)
-        {
-            LayerSize = layerSize;
-        }
+        public HardwareLeakyIntegrateFireNode(MessageHandling h) : base(h) { }
                 
         public new void PostFire()
         {
@@ -127,15 +121,10 @@ namespace SNNLib
             Accumulator = Accumulator*0.9;
         }
 
-        public new void ReceiveData(Message rx)
+        public override void ReceiveData(Message rx)
         {
+            CurrentTime = rx.Time;
             base.ReceiveData(rx); //ensure parent method is run.
-
-            if (rx.Time == LayerSize)
-            {
-                //whole loop round the nodes complete, all connections made
-                //TODO don't loop - just have all nodes connected together as usual, but DELAY of neuron number (that is arbitrary but meh).
-            }
 
             int time_diff = rx.Time - CurrentTime;
 
