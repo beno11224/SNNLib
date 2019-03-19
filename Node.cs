@@ -39,7 +39,7 @@ namespace SNNLib
             //TODO add count for times spiked - just one spike with the time - don't need to know where it went
             if (CurrentlyTraining)
             {
-                OutputMessages.Add(new Message(time, null));
+                OutputMessages.Add(new Message(time, null)); //TODO this isn't very helpful...
             }
 
             foreach (Synapse output in Outputs)

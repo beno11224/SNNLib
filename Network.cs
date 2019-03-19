@@ -109,7 +109,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.1, double eta_th = 0.1, double tau_mp = 100)
+        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double tau_mp = 100)
         {
             if (trainingInput.Length != InputNodes.Count || trainingTarget.Length != OutputNodes.Count)
             {
@@ -145,6 +145,8 @@ namespace SNNLib
 
                     double g = 1 / node.Bias;
                     g_bar += (g * g);
+
+                    //TODO for inhibition just add it all up and take away the current node from total?
 
                     //TODO error : store in Node?
                 }
