@@ -17,16 +17,23 @@ namespace SNNLib
     public class LeakyIntegrateFireNetwork
     {
         //standard FeedForward Network
-        List<Node> InputNodes = new List<Node>(); //used for easy passing in
-        List<Node> AllNodes = new List<Node>(); //actually stores all nodes
-        List<Node> OutputNodes = new List<Node>(); //used for easy passing out //TODO might be worth removing this
+        //List<Node> InputNodes = new List<Node>(); //used for easy passing in
+        //List<Node> AllNodes = new List<Node>(); //actually stores all nodes
+        List<Node>[] Nodes; //TODO stores all layers
+        int OutputLayerIndex;
+        //List<Node> OutputNodes = new List<Node>(); //used for easy passing out //TODO might be worth removing this
 
         public MessageHandling messageHandling = new MessageHandling();
 
         //layers[] stores the size of each layer - each layer is fully connected to the next one
         public LeakyIntegrateFireNetwork(int[] layers)
         {
-            int last_hidden = layers.Length - 1;
+            Nodes = new List<Node>[layers.Length];
+
+            //TODO add loops in hidden layers AND add percentage of inhibitory nodes
+
+
+            OutputLayerIndex = layers.Length - 1;
 
             //setup of Network
 
@@ -37,11 +44,11 @@ namespace SNNLib
             {
                 HardwareLeakyIntegrateFireNode node = new HardwareLeakyIntegrateFireNode(messageHandling);
                 prev_layer.Add(node);
-                InputNodes.Add(node);
-                AllNodes.Add(node); //TODO added
             }
 
-            for (int hidden_layer_count = 1; hidden_layer_count < last_hidden; hidden_layer_count++)
+            Nodes[0] = prev_layer;
+
+            for (int hidden_layer_count = 1; hidden_layer_count < OutputLayerIndex; hidden_layer_count++)
             {
                 List<Node> temp_layer = new List<Node>();
 
@@ -59,16 +66,17 @@ namespace SNNLib
                     }
 
                     temp_layer.Add(hidden);
-                    AllNodes.Add(hidden); //TODO added
                 }
-
-                prev_layer.Clear();
+                
                 prev_layer = new List<Node>(temp_layer);
-
+                
+                Nodes[hidden_layer_count] = prev_layer;
             }
 
+            List<Node> outs = new List<Node>();
+
             //setup output layer
-            for (int node_count = 0; node_count < layers[last_hidden]; node_count++)
+            for (int node_count = 0; node_count < layers[OutputLayerIndex]; node_count++)
             {
                 OutputNode outnode = new OutputNode(messageHandling);
 
@@ -80,38 +88,42 @@ namespace SNNLib
                     outnode.addSource(s);
                 }
 
-                OutputNodes.Add(outnode);
-                AllNodes.Add(outnode);
+                outs.Add(outnode);
             }
+
+            Nodes[OutputLayerIndex] = outs; //add the output nodes to the last layer
         }
 
         public List<Message>[] Run(List<Message>[] input, bool training = false)
         {
             //setup inputs
-            for (int node_count = 0; node_count < InputNodes.Count; node_count++)
+            for (int node_count = 0; node_count < Nodes[0].Count; node_count++)
             {
                 foreach (Message message in input[node_count])
                 {
-                    messageHandling.addMessage(new Message(message.Time, new Synapse(null, InputNodes[node_count], 1))); //add inputs
+                    messageHandling.addMessage(new Message(message.Time, new Synapse(null, Nodes[0][node_count], 1))); //add inputs
                 }
             }
 
             //loop round current 'events' till none left
             while (messageHandling.RunEventsAtNextTime()) // for reference in hardware when number of loops == number of nodes we have looped around one time.
             {
-                foreach(Node n in AllNodes)
+                foreach (List<Node> current_layer in Nodes)
                 {
-                    n.PostFire(); //TODO perform any after_fire(decay) functionality
+                    foreach (Node n in current_layer)
+                    {
+                        n.PostFire();
+                    }
                 }
             }
 
-            return new List<Message>[] { messageHandling.getOutput() };//messageHandling.getOutput() };
+            return new List<Message>[] { messageHandling.getOutput() };
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
         public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double tau_mp = 100)
         {
-            if (trainingInput.Length != InputNodes.Count || trainingTarget.Length != OutputNodes.Count)
+            if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
                 throw new Exception("Input/Target data needs to have same dimensions as the network");
             }
@@ -119,23 +131,27 @@ namespace SNNLib
             messageHandling.resetLists();
 
             //tell nodes training is happening
-            foreach (Node n in AllNodes) //TODO remember to tell nodes they're not training at the end of training.
+            foreach (List<Node> current_nodes in Nodes)
             {
-                n.ResetTrainingLists();
-                n.CurrentlyTraining = true;
+                foreach (Node n in current_nodes)
+                {
+                    //TODO remember to tell nodes they're not training at the end of training.
+                    n.ResetTrainingLists();
+                    n.CurrentlyTraining = true;
+                }
+
             }
 
             //do the forward pass to get output
             List<Message>[] output = Run(trainingInput, training: true); //TODO get the end time
             int current_time = messageHandling.max_time;
 
-            List<Node> current_layer = OutputNodes; //TODO pass by ref/value???
+            List<Node> current_layer;//TODO pass by ref/value???
 
             //iterate backwards through layers (backpropagration)
-            //iterate until no more layers
-            while (current_layer.Count > 0)
+            for( int layer_count = OutputLayerIndex; layer_count > 0; layer_count--)
             {
-                List<Node> next_layer = new List<Node>();
+                current_layer = Nodes[OutputLayerIndex];
 
                 double g_bar = 0;
                 
@@ -157,20 +173,12 @@ namespace SNNLib
 
                 foreach (Node i in current_layer)
                 {
-                    foreach(Synapse s in i.Inputs)
-                    {//TODO more efficient way of doing this??
-                        if (!next_layer.Contains(s.Source)) //TODO test
-                        {
-                            next_layer.Add(s.Source);
-                        }
-                    }
-
                     double g_ratio = (1 / i.Bias) / g_bar;
                     double synapse_active_ratio = 1;//Math.Sqrt(total / active); //TODO assuming one for the time being
 
                     double sum_weight_errors = 0;
 
-                    if (current_layer != OutputNodes) //TODO test //TODO use a_i for output
+                    if (current_layer != Nodes[OutputLayerIndex]) //TODO test //TODO use a_i for output
                     {
                         //TODO only for fired synapses?
                         foreach (Synapse j in i.Outputs) //use j to match equations
@@ -223,9 +231,6 @@ namespace SNNLib
                     double change_th = eta_th * i.LastDeltaI * a_i; //* N/m
                     i.Bias += change_th;
                 }
-
-                current_layer = next_layer;
-                next_layer = new List<Node>();
             }
         }
     }
