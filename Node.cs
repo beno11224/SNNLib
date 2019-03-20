@@ -34,17 +34,16 @@ namespace SNNLib
             OutputMessages = new List<Message>();
         }
 
-        public virtual void Spike(int time)
+        public virtual void Spike(int time, double val = 1) //val for future use
         {
-            //TODO add count for times spiked - just one spike with the time - don't need to know where it went
-            if (CurrentlyTraining)
+            /*if (CurrentlyTraining)
             {
-                OutputMessages.Add(new Message(time, null)); //TODO this isn't very helpful...
-            }
+                OutputMessages.Add(new Message(time, null, val)); //TODO the null isn't very helpful
+            }*/
 
             foreach (Synapse output in Outputs)
             {
-                messageHandler.addMessage(new Message(time + Delay, output));
+                messageHandler.addMessage(new Message(time + Delay, output, val));
             }
         }
 
@@ -88,20 +87,16 @@ namespace SNNLib
 
     public class OutputNode : HardwareLeakyIntegrateFireNode
     {
-        public OutputNode(MessageHandling h) : base(h) { }
+        public OutputNode(MessageHandling h, int Excitatory = 1) : base(h, Excitatory) { }
 
-        public override void Spike(int time)
+        public override void Spike(int time, double val = 1)
         {
-            //TODO add count for times spiked - just one spike with the time - don't need to know where it went
-            if (CurrentlyTraining)
+           /* if (CurrentlyTraining) //TODO is this the duplicate messages?
             {
-                OutputMessages.Add(new OutputMessage(time, null));
-            }
+                OutputMessages.Add(new OutputMessage(time, null, val));
+            }*/
 
-            //foreach (Synapse output in Outputs)
-            //{
-                messageHandler.addMessage(new OutputMessage(time + Delay, null));
-            //}
+            messageHandler.addMessage(new OutputMessage(time + Delay, new Synapse(this,null), val));
         }
     }
 
@@ -110,10 +105,16 @@ namespace SNNLib
         //explanation of harware implementation in report
         //used for where ALL neurons are connected.
 
+        //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
+
         double Accumulator = 0;
         int CurrentTime = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
+        int Excitatory = 1;
 
-        public HardwareLeakyIntegrateFireNode(MessageHandling h) : base(h) { }
+        public HardwareLeakyIntegrateFireNode(MessageHandling h, int excitatory = 1) : base(h)
+        {
+            Excitatory = excitatory;
+        }
                 
         public new void PostFire()
         {
@@ -134,40 +135,9 @@ namespace SNNLib
 
             if (Accumulator >= Bias)
             {
-                Spike(CurrentTime);
-                Accumulator = 0; //TODO discuss - is this correct or just remove threshold from ACC?
+                Spike(CurrentTime, Excitatory);
+                Accumulator = 0; //TODO discuss - is this correct or just remove threshold from ACC? - I mean reduce value in the accuimulator or reset it?
             }
-        }
-    }
-
-    public class LeakyIntegrateFireNode : Node
-    {
-        public LeakyIntegrateFireNode(MessageHandling h) : base(h) { }
-
-        //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
-
-        double Potential = 0;
-        int CurrentTime = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else
-        double MembraneResistance = 1; //the resistance to adding potential to the neuron
-        double LeakTime = 30; //time for neuron to leak
-        int delay = 1;
-
-        public new void ReceiveData(Message rx)
-        {
-            base.ReceiveData(rx); //ensure parent method is run.
-            int time_diff = rx.Time - CurrentTime;
-
-            double dynamic_weight = (time_diff < LeakTime) ? Math.Pow(time_diff / LeakTime,2) : 1; //TODO better name
-            dynamic_weight = (dynamic_weight < 1) ? dynamic_weight : 1;
-
-            Potential = Potential * Math.Exp((rx.Time - CurrentTime) / MembraneResistance) + rx.sYnapse.Weight * dynamic_weight;
-
-            if (Potential >= Bias) //Bias is exactly the same as a threshold in this implementation.
-            {
-                Spike(CurrentTime);
-                Potential = 0;
-            }
-
         }
     }
 

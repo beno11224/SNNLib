@@ -6,7 +6,16 @@ namespace SNNLib
     public class MessageHandling
     {
         private List<Message> eventList = new List<Message>();
-        private List<Message> output = new List<Message>();
+        private List<Message>[] output;
+
+        public MessageHandling(int outputSize)//int[] layers)
+        {
+            output = new List<Message>[outputSize];
+            for (int count = 0; count < outputSize; count++)
+            {
+                output[count] = new List<Message>();
+            }
+        }
 
         public int max_time { private set; get; }
 
@@ -45,7 +54,7 @@ namespace SNNLib
         {
             if (message.GetType().Equals(typeof(OutputMessage))) //TODO does this work???
             {
-                output.Add(message);
+                output[message.sYnapse.Source.LayerIndex].Add(message);
             }
             else
             {
@@ -74,7 +83,7 @@ namespace SNNLib
         }
 
         //just give contents of output list
-        public List<Message> getOutput()
+        public List<Message>[] getOutput()
         {
             return output;
         }
@@ -83,7 +92,10 @@ namespace SNNLib
         public void resetLists()
         {
             eventList = new List<Message>();
-            output = new List<Message>();
+            for(int output_index = 0; output_index < output.Length; output_index++)
+            {
+                output[output_index] = new List<Message>();
+            }
             max_time = 0;
         }
 
@@ -94,18 +106,20 @@ namespace SNNLib
     {
         //can only be set privately, but got publicly
         public int Time { get; private set; }
-        public Synapse sYnapse { get; private set; }
+        public Synapse sYnapse { get; private set; } //TODO name
+        public double Val { get; private set; } //passing different values to the nodes. set at one unless needed (e.g. for inhibitory)
 
-        public Message(int time, Synapse synapse)
+        public Message(int time, Synapse synapse, double val = 1)
         {
-            Time = time;
+            Time = time;            
             sYnapse = synapse;
+            Val = val;
         }
     }
 
     //used for storing output.
     public class OutputMessage : Message
     {
-        public OutputMessage(int time, Synapse synapse) : base(time, synapse) { }
+        public OutputMessage(int time, Synapse synapse, double val = 1) : base(time, synapse, val) { }
     }
 }
