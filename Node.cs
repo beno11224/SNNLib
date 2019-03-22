@@ -6,14 +6,16 @@ using System.Threading.Tasks;
 
 namespace SNNLib
 {
-   public class Node
+    public class Node
     {
         //Each node contains the snapses that go from it to other nodes.
         public double Bias = 0; //same as weights - needs to not be a double?
         public List<Synapse> Inputs { get; protected set; }
-        public List<Synapse> Outputs{ get; protected set; }
+        public List<Synapse> Outputs { get; protected set; }
 
         protected MessageHandling messageHandler;
+
+        public int LayerIndex {get; protected set;}
 
         protected int Delay = 0;
         
@@ -23,11 +25,12 @@ namespace SNNLib
         public List<Message> InputMessages { get; protected set; }
         public List<Message> OutputMessages { get; protected set; }
 
-        public Node(MessageHandling h)
+        public Node(MessageHandling h, int layerIndex)
         {
             Inputs = new List<Synapse>();
             Outputs = new List<Synapse>();
             messageHandler = h;
+            LayerIndex = layerIndex;
             Bias = 1; //should be randomised
             Delay = 1;
             InputMessages = new List<Message>();
@@ -87,14 +90,14 @@ namespace SNNLib
 
     public class OutputNode : HardwareLeakyIntegrateFireNode
     {
-        public OutputNode(MessageHandling h, int Excitatory = 1) : base(h, Excitatory) { }
+        public OutputNode(MessageHandling h, int layerIndex , int Excitatory = 1) : base(h, layerIndex, Excitatory) { }
 
         public override void Spike(int time, double val = 1)
         {
-           /* if (CurrentlyTraining) //TODO is this the duplicate messages?
+            if (CurrentlyTraining) //TODO is this the duplicate messages?
             {
                 OutputMessages.Add(new OutputMessage(time, null, val));
-            }*/
+            }
 
             messageHandler.addMessage(new OutputMessage(time + Delay, new Synapse(this,null), val));
         }
@@ -108,10 +111,10 @@ namespace SNNLib
         //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
 
         double Accumulator = 0;
-        int CurrentTime = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
+        int TimePrevSpike = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
         int Excitatory = 1;
 
-        public HardwareLeakyIntegrateFireNode(MessageHandling h, int excitatory = 1) : base(h)
+        public HardwareLeakyIntegrateFireNode(MessageHandling h, int layerIndex, int excitatory = 1) : base(h,layerIndex)
         {
             Excitatory = excitatory;
         }
@@ -124,18 +127,22 @@ namespace SNNLib
 
         public override void ReceiveData(Message rx)
         {
-            CurrentTime = rx.Time;
+            int lambda = 1; //decay constant - must be defined somewhere
             base.ReceiveData(rx); //ensure parent method is run.
 
-            int time_diff = rx.Time - CurrentTime;
+            int time_diff = rx.Time - TimePrevSpike;
 
             //if we receive a message then there was a spike on that neuron.
 
+            Accumulator = Accumulator * Math.Exp((TimePrevSpike - rx.Time) * lambda); //decay accumulator correctly
+
             Accumulator += rx.sYnapse.Weight;
+
+            TimePrevSpike = rx.Time;
 
             if (Accumulator >= Bias)
             {
-                Spike(CurrentTime, Excitatory);
+                Spike(TimePrevSpike, Excitatory);
                 Accumulator = 0; //TODO discuss - is this correct or just remove threshold from ACC? - I mean reduce value in the accuimulator or reset it?
             }
         }

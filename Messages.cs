@@ -84,7 +84,7 @@ namespace SNNLib
 
         //just give contents of output list
         public List<Message>[] getOutput()
-        {
+        {            
             return output;
         }
 
