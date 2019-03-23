@@ -122,6 +122,18 @@ namespace SNNLib
         {
             messageHandling.resetLists();
 
+            foreach (List<Node> current_nodes in Nodes)
+            {
+                foreach (Node n in current_nodes)
+                {
+                    n.ResetNode();
+                    n.CurrentlyTraining = true;//training;
+                }
+
+            }
+
+            //TODO reset accumulators at the end!
+
             //setup inputs
             for (int node_count = 0; node_count < Nodes[0].Count; node_count++)
             {
@@ -153,20 +165,7 @@ namespace SNNLib
             {
                 throw new Exception("Input/Target data needs to have same dimensions as the network");
             }
-
-            messageHandling.resetLists();
-
-            //tell nodes training is happening
-            foreach (List<Node> current_nodes in Nodes)
-            {
-                foreach (Node n in current_nodes)
-                {
-                    n.ResetTrainingLists();
-                    n.CurrentlyTraining = true;
-                }
-
-            }
-
+            
             //do the forward pass to get output
             List<Message>[] output = Run(trainingInput);//, training: true);
             int current_time = messageHandling.max_time; //TODO get the end time - this is fine right?
@@ -271,7 +270,7 @@ namespace SNNLib
             {
                 foreach (Node n in current_nodes)
                 {
-                    n.ResetTrainingLists();
+                    n.ResetNode();
                     n.CurrentlyTraining = false;
                 }
 

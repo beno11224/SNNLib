@@ -74,7 +74,7 @@ namespace SNNLib
             Outputs.Add(target);
         }
 
-        public void ResetTrainingLists()
+        public virtual void ResetNode()
         {
             InputMessages = new List<Message>();
             OutputMessages = new List<Message>();
@@ -94,7 +94,7 @@ namespace SNNLib
 
         public override void Spike(int time, double val = 1)
         {
-            if (CurrentlyTraining) //TODO is this the duplicate messages?
+            if (CurrentlyTraining)
             {
                 OutputMessages.Add(new OutputMessage(time, null, val));
             }
@@ -111,7 +111,7 @@ namespace SNNLib
         //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
 
         double Accumulator = 0;
-        int TimePrevSpike = 0; //time that the potential was calcualted at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
+        int TimePrevSpike = 0; //time that the potential was calculated at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
         int Excitatory = 1;
 
         public HardwareLeakyIntegrateFireNode(MessageHandling h, int layerIndex, int excitatory = 1) : base(h,layerIndex)
@@ -145,6 +145,13 @@ namespace SNNLib
                 Spike(TimePrevSpike, Excitatory);
                 Accumulator = 0; //TODO discuss - is this correct or just remove threshold from ACC? - I mean reduce value in the accuimulator or reset it?
             }
+        }
+
+        public override void ResetNode()
+        {
+            base.ResetNode();
+            Accumulator = 0;
+            TimePrevSpike = 0;
         }
     }
 
