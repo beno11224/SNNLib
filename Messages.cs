@@ -58,11 +58,45 @@ namespace SNNLib
             }
             else
             {
+                if (eventList.Count == 0)
+                {
+                    eventList.Add(message);
+                    return;
+                }
+                //insertion sort
+                int start_index = 0;
+                int end_index = eventList.Count; //TODO need to do checking so it doesn't loop inifinitely
+
+                while(true) //TODO no checking - is this a problem?
+                {
+                    int centre = (start_index + end_index) / 2;
+                    if (centre == start_index)
+                    {
+                        if(eventList[centre].Time <= message.Time)
+                        {
+                            eventList.Insert(end_index, message);
+                        }
+                        else
+                        {
+                            eventList.Insert(centre, message);
+                        }
+                        return;
+                    }
+
+                    if (eventList[centre].Time <= message.Time)
+                    {
+                        start_index = centre;
+                    }
+                    else
+                    {
+                        end_index = centre;
+                    }
+                }
+
+                /*
                 //insert at start
                 eventList.Insert(0, message);
-
-
-
+                
                 //one iteration of 'bubble sort' to move the only out of place element (the one just added) to the correct place. ensure it goes to the end of the possible arrangements
                 for (int index = 1; index < eventList.Count; index++)
                 {
@@ -78,7 +112,7 @@ namespace SNNLib
                         //sorted
                         break;
                     }
-                }
+                }*/
             }
         }
 

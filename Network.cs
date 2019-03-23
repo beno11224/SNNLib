@@ -17,15 +17,17 @@ namespace SNNLib
     public class LeakyIntegrateFireNetwork
     {
         //Network made of Leaky Integrate and Fire nodes both excitatory and inhibitory
-        List<Node>[] Nodes; //stores all layers
+        List<LeakyIntegrateAndFireNode>[] Nodes; //stores all layers
         int OutputLayerIndex;
 
         Random random = new Random();
 
+        double Lambda = 0;
+
         public MessageHandling messageHandling; //TODO remember to initialise  = new MessageHandling();
 
         //layers[] stores the size of each layer - each layer is fully connected to the next one
-        public LeakyIntegrateFireNetwork(int[] layers, int[] inhibitory_percentages)
+        public LeakyIntegrateFireNetwork(int[] layers, int[] inhibitory_percentages, double lambda = 1)
         {
 
             if (layers.Length != inhibitory_percentages.Length)
@@ -33,7 +35,9 @@ namespace SNNLib
                 throw new Exception("please give an inhibitory percentage for each layer including input & output layers"); //TODO check every n nodes to see that the percentage is abotu right
             }
 
-            Nodes = new List<Node>[layers.Length];
+            Lambda = lambda;
+
+            Nodes = new List<LeakyIntegrateAndFireNode>[layers.Length];
                        
             OutputLayerIndex = layers.Length - 1;
             
@@ -41,27 +45,27 @@ namespace SNNLib
 
             //setup of Network
 
-            List<Node> prev_layer = new List<Node>();
+            List<LeakyIntegrateAndFireNode> prev_layer = new List<LeakyIntegrateAndFireNode>();
             
             //setup (input and) hidden layers & connections to previous layers
             for (int hidden_layer_count = 0; hidden_layer_count < OutputLayerIndex; hidden_layer_count++)
             {
-                List<Node> temp_layer = new List<Node>();
+                List<LeakyIntegrateAndFireNode> temp_layer = new List<LeakyIntegrateAndFireNode>();
                                 
                 for (int node_count = 0; node_count < layers[hidden_layer_count]; node_count++)
                 {
-                    Node hidden;
+                    LeakyIntegrateAndFireNode hidden;
                     int r = random.Next(0, 100);
                     if (r < inhibitory_percentages[hidden_layer_count])
                     {
-                        hidden = new HardwareLeakyIntegrateFireNode(messageHandling, layerIndex: node_count, excitatory: 1);
+                        hidden = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: node_count, excitatory: 1);
                     }
                     else
                     {
-                        hidden = new HardwareLeakyIntegrateFireNode(messageHandling, layerIndex: node_count, excitatory: -1);
+                        hidden = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: node_count, excitatory: -1);
                     }
 
-                    foreach (Node prev_node in prev_layer)
+                    foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
                     {
                         //setup the connections between the nodes
                         Synapse s = new Synapse(prev_node, hidden, 1);
@@ -72,9 +76,9 @@ namespace SNNLib
                     temp_layer.Add(hidden);
                 }
                 
-                foreach(Node outer in temp_layer)
+                foreach(LeakyIntegrateAndFireNode outer in temp_layer)
                 {
-                    foreach(Node inner in temp_layer)
+                    foreach(LeakyIntegrateAndFireNode inner in temp_layer)
                     {
                         if (outer != inner)
                         {
@@ -85,12 +89,12 @@ namespace SNNLib
                     }
                 }
 
-                prev_layer = new List<Node>(temp_layer);
+                prev_layer = new List<LeakyIntegrateAndFireNode>(temp_layer);
                 
                 Nodes[hidden_layer_count] = prev_layer;
             }
 
-            List<Node> outs = new List<Node>();
+            List<LeakyIntegrateAndFireNode> outs = new List<LeakyIntegrateAndFireNode>();
 
             //setup output layer
             for (int node_count = 0; node_count < layers[OutputLayerIndex]; node_count++)
@@ -104,7 +108,7 @@ namespace SNNLib
                 { 
                     outnode = new OutputNode(messageHandling, layerIndex: node_count, Excitatory: -1);
                 }
-                foreach (Node prev_node in prev_layer)
+                foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
                 {
                     //setup the connections between the nodes
                     Synapse s = new Synapse(prev_node, outnode, 1);
@@ -122,9 +126,9 @@ namespace SNNLib
         {
             messageHandling.resetLists();
 
-            foreach (List<Node> current_nodes in Nodes)
+            foreach (List<LeakyIntegrateAndFireNode> current_nodes in Nodes)
             {
-                foreach (Node n in current_nodes)
+                foreach (LeakyIntegrateAndFireNode n in current_nodes)
                 {
                     n.ResetNode();
                     n.CurrentlyTraining = true;//training;
@@ -146,9 +150,9 @@ namespace SNNLib
             //loop round current 'events' till none left
             while (messageHandling.RunEventsAtNextTime() && messageHandling.max_time < 1000) // for reference in hardware when number of loops == number of nodes we have looped around one time.
             {
-                foreach (List<Node> current_layer in Nodes)
+                foreach (List<LeakyIntegrateAndFireNode> current_layer in Nodes)
                 {
-                    foreach (Node n in current_layer)
+                    foreach (LeakyIntegrateAndFireNode n in current_layer)
                     {
                         n.PostFire();
                     }
@@ -159,7 +163,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void train(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double tau_mp = 100)
+        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double tau_mp = 100)
         {
             if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
@@ -170,7 +174,7 @@ namespace SNNLib
             List<Message>[] output = Run(trainingInput);//, training: true);
             int current_time = messageHandling.max_time; //TODO get the end time - this is fine right?
 
-            List<Node> current_layer;
+            List<LeakyIntegrateAndFireNode> current_layer;
 
             //iterate backwards through layers (backpropagration)
             for( int layer_count = OutputLayerIndex; layer_count > 0; layer_count--)
@@ -218,7 +222,7 @@ namespace SNNLib
                         foreach (Message m in i.OutputMessages)    //iterate over all messages(spikes) sent by that node
                         {
                             actual_output_a = actual_output_a * Math.Exp((current_time - m.Time) * lambda);
-                            actual_output_a++; //is it just + 1??? need the weight surely?
+                            actual_output_a += m.sYnapse.Weight; //is it just + 1??? need the weight surely?
 
                             //actual_output_a += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow...
                         }
@@ -242,9 +246,9 @@ namespace SNNLib
 
                         foreach (Message m in j.Target.InputMessages)    //iterate over all messages(spikes) received by that node
                         {
-                            x_j += Math.Exp((m.Time - current_time) / tau_mp);
-                            //x_j = x_j * Math.Exp((current_time - m.Time) * 1);
-                            //x_j+= j.Weight; 
+                            //x_j += Math.Exp((m.Time - current_time) / tau_mp);
+                            x_j = x_j * Math.Exp((current_time - m.Time) * 1);
+                            x_j+= j.Weight; 
                         }
 
                         double change_w = eta_w * i.LastDeltaI * x_j; //* N/m //TODO can't just do this here...
@@ -255,9 +259,9 @@ namespace SNNLib
 
                     foreach (Message m in i.OutputMessages)    //iterate over all messages(spikes) sent by that node
                     {
-                        a_i += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow... //TODO this is wrong!!!!
-                        //a_i = a_i * Math.Exp((current_time - m.Time) * 1);
-                        //a_i += m.sYnapse.Weight;
+                        //a_i += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow... //TODO this is wrong!!!!
+                        a_i = a_i * Math.Exp((current_time - m.Time) * 1);
+                        a_i += m.sYnapse.Weight; //TODO this doesn't make sense...
                     }
                     
                     double change_th = eta_th * i.LastDeltaI * a_i; //* N/m
@@ -266,9 +270,9 @@ namespace SNNLib
             }
 
             //tell nodes training has finished
-            foreach (List<Node> current_nodes in Nodes)
+            foreach (List<LeakyIntegrateAndFireNode> current_nodes in Nodes)
             {
-                foreach (Node n in current_nodes)
+                foreach (LeakyIntegrateAndFireNode n in current_nodes)
                 {
                     n.ResetNode();
                     n.CurrentlyTraining = false;

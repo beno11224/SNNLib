@@ -24,7 +24,7 @@ namespace SNNLib
 
         public List<Message> InputMessages { get; protected set; }
         public List<Message> OutputMessages { get; protected set; }
-
+        
         public Node(MessageHandling h, int layerIndex)
         {
             Inputs = new List<Synapse>();
@@ -39,10 +39,10 @@ namespace SNNLib
 
         public virtual void Spike(int time, double val = 1) //val for future use
         {
-            /*if (CurrentlyTraining)
+            if (CurrentlyTraining)
             {
-                OutputMessages.Add(new Message(time, null, val)); //TODO the null isn't very helpful
-            }*/
+                OutputMessages.Add(new Message(time, new Synapse(this,null), val)); //TODO the null isn't very helpful
+            }
 
             foreach (Synapse output in Outputs)
             {
@@ -88,22 +88,22 @@ namespace SNNLib
 
     }
 
-    public class OutputNode : HardwareLeakyIntegrateFireNode
+    public class OutputNode : LeakyIntegrateAndFireNode
     {
-        public OutputNode(MessageHandling h, int layerIndex , int Excitatory = 1) : base(h, layerIndex, Excitatory) { }
+        public OutputNode(MessageHandling h, int layerIndex, double lambda = 1, int Excitatory = 1) : base(h, layerIndex, lambda, Excitatory) { }
 
         public override void Spike(int time, double val = 1)
         {
             if (CurrentlyTraining)
             {
-                OutputMessages.Add(new OutputMessage(time, null, val));
+                OutputMessages.Add(new OutputMessage(time, new Synapse(this,null), val));
             }
 
             messageHandler.addMessage(new OutputMessage(time + Delay, new Synapse(this,null), val));
         }
     }
 
-    public class HardwareLeakyIntegrateFireNode : Node
+    public class LeakyIntegrateAndFireNode : Node
     {
         //explanation of harware implementation in report
         //used for where ALL neurons are connected.
@@ -113,10 +113,12 @@ namespace SNNLib
         double Accumulator = 0;
         int TimePrevSpike = 0; //time that the potential was calculated at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
         int Excitatory = 1;
+        double Lambda = 1;
 
-        public HardwareLeakyIntegrateFireNode(MessageHandling h, int layerIndex, int excitatory = 1) : base(h,layerIndex)
+        public LeakyIntegrateAndFireNode(MessageHandling h, int layerIndex, double lambda = 1, int excitatory = 1) : base(h,layerIndex)
         {
             Excitatory = excitatory;
+            Lambda = lambda;
         }
                 
         public new void PostFire()
