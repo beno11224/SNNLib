@@ -5,6 +5,11 @@ VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SNNLib", "SNNLib.csproj", "{C903919E-441E-462D-8C4B-D46890809E72}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LIFNNTest", "C:\Users\beno11224\source\repos\LIFNNTest\LIFNNTest\LIFNNTest.csproj", "{E7234ACB-20B1-4EFA-870F-5E172D3D338D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C903919E-441E-462D-8C4B-D46890809E72} = {C903919E-441E-462D-8C4B-D46890809E72}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +20,10 @@ Global
 		{C903919E-441E-462D-8C4B-D46890809E72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C903919E-441E-462D-8C4B-D46890809E72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C903919E-441E-462D-8C4B-D46890809E72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7234ACB-20B1-4EFA-870F-5E172D3D338D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7234ACB-20B1-4EFA-870F-5E172D3D338D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7234ACB-20B1-4EFA-870F-5E172D3D338D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7234ACB-20B1-4EFA-870F-5E172D3D338D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

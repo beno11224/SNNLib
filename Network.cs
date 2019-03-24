@@ -65,6 +65,7 @@ namespace SNNLib
                         hidden = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: node_count, excitatory: -1);
                     }
 
+
                     foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
                     {
                         //setup the connections between the nodes
@@ -75,7 +76,7 @@ namespace SNNLib
 
                     temp_layer.Add(hidden);
                 }
-                
+                /*
                 foreach(LeakyIntegrateAndFireNode outer in temp_layer)
                 {
                     foreach(LeakyIntegrateAndFireNode inner in temp_layer)
@@ -87,7 +88,7 @@ namespace SNNLib
                             inner.addSource(s);
                         }
                     }
-                }
+                }*/
 
                 prev_layer = new List<LeakyIntegrateAndFireNode>(temp_layer);
                 
@@ -133,7 +134,6 @@ namespace SNNLib
                     n.ResetNode();
                     n.CurrentlyTraining = true;//training;
                 }
-
             }
 
             //TODO reset accumulators at the end!
@@ -182,21 +182,37 @@ namespace SNNLib
                 current_layer = Nodes[layer_count];
 
                 double g_bar = 0;
-                
+
                 foreach (Node node in current_layer) //iterate over current layer (start with 'output' nodes)
                 {
                     double g = 1 / node.Bias;
                     g_bar += (g * g);
 
+                    //Ml += node.Inputs.Count; //do per node
+                    //ml += node.InputMessages.Count; //TODO this (might not) wont work for multiple inputs to one node // not this, its obvious look at paper on desk
+
                     //TODO error value : store in Node?
-                }
+                }                             
 
                 g_bar = Math.Sqrt(g_bar / current_layer.Count); //g_bar is now useable
 
                 int output_layer_count = 0; //TODO this might get buggy - a more permanent fix is needed.
 
+                double Nl = current_layer.Count; //number of Neurons in layer
+
                 foreach (Node i in current_layer)
-                {
+                {                    
+                    double ml = 0; //number of active synapses of a neuron (assumed over all neurons in layer) //TODO
+                    double Ml = i.Inputs.Count; //number of Synapses of neuron (assumed input synapses)
+                    
+                    if (ml == 0)
+                    { //divide by zero error - no messages given to this node keep as it is.
+                        continue;
+                    }
+
+                    double d_w_norm = Math.Sqrt(Nl / ml);
+                    double d_th_norm = Math.Sqrt(Nl / (ml * Ml));
+
                     double g_ratio = (1 / i.Bias) / g_bar;
                     double synapse_active_ratio = 1;//Math.Sqrt(total / active); //TODO assuming one for the time being
 
@@ -251,7 +267,7 @@ namespace SNNLib
                             x_j+= j.Weight; 
                         }
 
-                        double change_w = eta_w * i.LastDeltaI * x_j; //* N/m //TODO can't just do this here...
+                        double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j;
                         j.Weight += change_w;
                     }
 
@@ -264,7 +280,7 @@ namespace SNNLib
                         a_i += m.sYnapse.Weight; //TODO this doesn't make sense...
                     }
                     
-                    double change_th = eta_th * i.LastDeltaI * a_i; //* N/m
+                    double change_th = eta_th * d_th_norm * i.LastDeltaI * a_i;
                     i.Bias += change_th;
                 }
             }
