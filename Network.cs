@@ -17,27 +17,28 @@ namespace SNNLib
     public class LeakyIntegrateFireNetwork
     {
         //Network made of Leaky Integrate and Fire nodes both excitatory and inhibitory
-        List<LeakyIntegrateAndFireNode>[] Nodes; //stores all layers
+        List<LeakyIntegrateAndFireNode>[] Nodes; //stores the size of each layer - each layer is fully connected to the next one
+        SynapseObject[] InputSynapses;
         int OutputLayerIndex;
 
         Random random = new Random();
 
         double Lambda = 0;
 
-        public MessageHandling messageHandling; //TODO remember to initialise  = new MessageHandling();
+        public MessageHandling messageHandling;
 
-        //layers[] stores the size of each layer - each layer is fully connected to the next one
         public LeakyIntegrateFireNetwork(int[] layers, int[] inhibitory_percentages, double lambda = 1)
         {
 
             if (layers.Length != inhibitory_percentages.Length)
             {
-                throw new Exception("please give an inhibitory percentage for each layer including input & output layers"); //TODO check every n nodes to see that the percentage is abotu right
+                throw new Exception("please give an inhibitory percentage for each layer including input & output layers"); //TODO could check every n nodes to see that the percentage is about right
             }
 
             Lambda = lambda;
 
             Nodes = new List<LeakyIntegrateAndFireNode>[layers.Length];
+            InputSynapses = new SynapseObject[layers[0]]; //input same size as input nodes
                        
             OutputLayerIndex = layers.Length - 1;
             
@@ -48,35 +49,44 @@ namespace SNNLib
             List<LeakyIntegrateAndFireNode> prev_layer = new List<LeakyIntegrateAndFireNode>();
             
             //setup (input and) hidden layers & connections to previous layers
-            for (int hidden_layer_count = 0; hidden_layer_count < OutputLayerIndex; hidden_layer_count++)
+            for (int layer_count = 0; layer_count < OutputLayerIndex; layer_count++)
             {
                 List<LeakyIntegrateAndFireNode> temp_layer = new List<LeakyIntegrateAndFireNode>();
                                 
-                for (int node_count = 0; node_count < layers[hidden_layer_count]; node_count++)
+                for (int node_count = 0; node_count < layers[layer_count]; node_count++)
                 {
-                    LeakyIntegrateAndFireNode hidden;
+                    LeakyIntegrateAndFireNode new_node;
                     int r = random.Next(0, 100);
-                    if (r < inhibitory_percentages[hidden_layer_count])
+                    if (r < inhibitory_percentages[layer_count])
                     {
-                        hidden = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: node_count, excitatory: 1);
+                        new_node = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: layer_count, nodeIndex: node_count, excitatory: 1);
                     }
                     else
                     {
-                        hidden = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: node_count, excitatory: -1);
+                        new_node = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: layer_count, nodeIndex: node_count, excitatory: -1);
                     }
 
 
                     foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
                     {
                         //setup the connections between the nodes
-                        Synapse s = new Synapse(prev_node, hidden, 1);
+                        SynapseObject s = new SynapseObject(prev_node, new_node, 1);
                         prev_node.addTarget(s);
-                        hidden.addSource(s);
+                        new_node.addSource(s);
                     }
 
-                    temp_layer.Add(hidden);
+                    if (layer_count == 0) // input layer
+                    {
+                        //setup the input synapses (one synapse going to first layer of nodes)
+                        SynapseObject input_synapse = new SynapseObject(null, new_node, 1);
+                        new_node.addSource(input_synapse);
+                        InputSynapses[node_count] = input_synapse;
+                    }
+
+                    temp_layer.Add(new_node);
                 }
-                /*
+                               
+                /* //TODO work out how this affects everything and if it's needed/wanted
                 foreach(LeakyIntegrateAndFireNode outer in temp_layer)
                 {
                     foreach(LeakyIntegrateAndFireNode inner in temp_layer)
@@ -92,7 +102,7 @@ namespace SNNLib
 
                 prev_layer = new List<LeakyIntegrateAndFireNode>(temp_layer);
                 
-                Nodes[hidden_layer_count] = prev_layer;
+                Nodes[layer_count] = prev_layer;
             }
 
             List<LeakyIntegrateAndFireNode> outs = new List<LeakyIntegrateAndFireNode>();
@@ -103,16 +113,16 @@ namespace SNNLib
                 OutputNode outnode;
                 if (random.Next(0, 100) < inhibitory_percentages[0])
                 {
-                    outnode = new OutputNode(messageHandling, layerIndex: node_count, Excitatory: 1);
+                    outnode = new OutputNode(messageHandling, layerIndex: OutputLayerIndex, nodeIndex: node_count, Excitatory: 1);
                 }
                 else
                 { 
-                    outnode = new OutputNode(messageHandling, layerIndex: node_count, Excitatory: -1);
+                    outnode = new OutputNode(messageHandling, layerIndex: OutputLayerIndex, nodeIndex: node_count, Excitatory: -1);
                 }
                 foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
                 {
                     //setup the connections between the nodes
-                    Synapse s = new Synapse(prev_node, outnode, 1);
+                    SynapseObject s = new SynapseObject(prev_node, outnode, 1);
                     prev_node.addTarget(s);
                     outnode.addSource(s);
                 }
@@ -135,15 +145,13 @@ namespace SNNLib
                     n.CurrentlyTraining = true;//training;
                 }
             }
-
-            //TODO reset accumulators at the end!
-
+            
             //setup inputs
             for (int node_count = 0; node_count < Nodes[0].Count; node_count++)
             {
                 foreach (Message message in input[node_count])
                 {
-                    messageHandling.addMessage(new Message(message.Time, new Synapse(null, Nodes[0][node_count], 1))); //add inputs
+                    messageHandling.addMessage(new Message(message.Time, InputSynapses[node_count], 1)); //add inputs
                 }
             }
 
@@ -163,7 +171,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double tau_mp = 100)
+        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.001, double tau_mp = 100)
         {
             if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
@@ -171,62 +179,64 @@ namespace SNNLib
             }
             
             //do the forward pass to get output
-            List<Message>[] output = Run(trainingInput);//, training: true);
-            int current_time = messageHandling.max_time; //TODO get the end time - this is fine right?
+            List<Message>[] output = Run(trainingInput, training: true);
+            int current_time = messageHandling.max_time;
 
             List<LeakyIntegrateAndFireNode> current_layer;
 
             //iterate backwards through layers (backpropagration)
-            for( int layer_count = OutputLayerIndex; layer_count > 0; layer_count--)
+            for( int layer_count = OutputLayerIndex; layer_count >= 0; layer_count--)
             {
                 current_layer = Nodes[layer_count];
 
                 double g_bar = 0;
 
+                double Nl = current_layer.Count; //number of Neurons in layer
+                double nl = 0; //number of firing neurons in layer
+
+
+                //TODO what about inhibiting neurons - surely they are the reverse?
+                
+
                 foreach (Node node in current_layer) //iterate over current layer (start with 'output' nodes)
                 {
                     double g = 1 / node.Bias;
                     g_bar += (g * g);
-
-                    //Ml += node.Inputs.Count; //do per node
-                    //ml += node.InputMessages.Count; //TODO this (might not) wont work for multiple inputs to one node // not this, its obvious look at paper on desk
-
-                    //TODO error value : store in Node?
+                    
+                    if (node.OutputMessages.Count > 0)
+                    {
+                        nl++;
+                    }
                 }                             
 
                 g_bar = Math.Sqrt(g_bar / current_layer.Count); //g_bar is now useable
-
-                int output_layer_count = 0; //TODO this might get buggy - a more permanent fix is needed.
-
-                double Nl = current_layer.Count; //number of Neurons in layer
-
+                
                 foreach (Node i in current_layer)
                 {                    
-                    double ml = 0; //number of active synapses of a neuron (assumed over all neurons in layer) //TODO
+                    double ml = i.InputMesssageNodes.Count; //number of active synapses of a neuron (assumed over all neurons in layer) //TODO
                     double Ml = i.Inputs.Count; //number of Synapses of neuron (assumed input synapses)
-                    
-                    if (ml == 0)
+
+                    if (ml == 0 || nl == 0)
                     { //divide by zero error - no messages given to this node keep as it is.
                         continue;
                     }
 
                     double d_w_norm = Math.Sqrt(Nl / ml);
                     double d_th_norm = Math.Sqrt(Nl / (ml * Ml));
+                    double delta_norm = Math.Sqrt(Nl / nl); //ml+1 == nl etc
 
-                    double g_ratio = (1 / i.Bias) / g_bar;
-                    double synapse_active_ratio = 1;//Math.Sqrt(total / active); //TODO assuming one for the time being
+                    double g_ratio = (1 / i.Bias) / g_bar;                   
 
                     double sum_weight_errors = 0;
 
                     if (current_layer != Nodes[OutputLayerIndex])
                     {
-                        //TODO only for fired synapses?
-                        foreach (Synapse j in i.Outputs) //use j to match equations
+                        foreach (SynapseObject j in i.Outputs) //use j to match equations
                         {
-                            sum_weight_errors += j.Weight * j.Target.LastDeltaI;
+                            sum_weight_errors += j.Weight * j.Target.LastDeltaI; //TODO not storing the error correctly
                         }
 
-                        i.LastDeltaI = g_ratio * synapse_active_ratio * sum_weight_errors; //TODO store this in the node for safe keeping
+                        i.LastDeltaI = g_ratio * delta_norm * sum_weight_errors;
                     }
                     else
                     {
@@ -235,53 +245,45 @@ namespace SNNLib
 
                         int lambda = 1; //TODO like in Node
 
-                        foreach (Message m in i.OutputMessages)    //iterate over all messages(spikes) sent by that node
+                        foreach (Message m in i.OutputMessages)  //iterate over all messages(spikes) sent by that node
                         {
                             actual_output_a = actual_output_a * Math.Exp((current_time - m.Time) * lambda);
-                            actual_output_a += m.sYnapse.Weight; //is it just + 1??? need the weight surely?
-
-                            //actual_output_a += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow...
+                            actual_output_a += m.Synapse.Weight;                            
                         }
 
-                        foreach (Message m in trainingTarget[output_layer_count]) //iterate over all target values
+                        foreach (Message m in trainingTarget[i.NodeIndex]) //iterate over all target values
                         {
                             target_output_a = target_output_a * Math.Exp((current_time - m.Time) * lambda);
-                            target_output_a++; 
-
-                            //target_output_a += Math.Exp((m.Time - current_time) / tau_mp);                            
+                            target_output_a++;                        
                         }
-                        
-                        output_layer_count++; //TODO buggy...
 
-                        i.LastDeltaI = actual_output_a - target_output_a;
+                        i.LastDeltaI = target_output_a - actual_output_a;
                     }
 
-                    foreach (Synapse j in i.Outputs) //use j to match equations
+                    foreach (SynapseObject j in i.Outputs) //use j to match equations
                     {
-                        double x_j = 0;
+                        double x_j = 1;
 
-                        foreach (Message m in j.Target.InputMessages)    //iterate over all messages(spikes) received by that node
+                        foreach (Message m in j.Target.InputMessages) //iterate over all messages(spikes) received by that node
                         {
-                            //x_j += Math.Exp((m.Time - current_time) / tau_mp);
-                            x_j = x_j * Math.Exp((current_time - m.Time) * 1);
+                            x_j = x_j * Math.Exp((m.Time - current_time) * 1);
                             x_j+= j.Weight; 
                         }
 
                         double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j;
-                        j.Weight += change_w;
+                        j.Weight -= change_w; //TODO this resulted in larger weight???
                     }
 
-                    double a_i = 0;
+                    double a_i = 1;
 
-                    foreach (Message m in i.OutputMessages)    //iterate over all messages(spikes) sent by that node
+                    foreach (Message m in i.OutputMessages) //iterate over all messages(spikes) sent by that node
                     {
-                        //a_i += Math.Exp((m.Time - current_time) / tau_mp); //TODO get currentTime somehow... //TODO this is wrong!!!!
-                        a_i = a_i * Math.Exp((current_time - m.Time) * 1);
-                        a_i += m.sYnapse.Weight; //TODO this doesn't make sense...
+                        a_i = a_i * Math.Exp((m.Time - current_time) * 1);
+                        a_i += m.Synapse.Weight; //TODO this doesn't make sense...
                     }
                     
                     double change_th = eta_th * d_th_norm * i.LastDeltaI * a_i;
-                    i.Bias += change_th;
+                    i.Bias -= change_th;
                 }
             }
 

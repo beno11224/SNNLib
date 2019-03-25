@@ -30,11 +30,9 @@ namespace SNNLib
             int current_time = eventList[0].Time; //the current time of the simulation
             int event_time;
 
-            max_time = current_time; //save the last time we ran something.
-
             do
             {
-                eventList[0].sYnapse.Target.ReceiveData(eventList[0]); //pass the message to the next node
+                eventList[0].Synapse.Target.ReceiveData(eventList[0]); //pass the message to the next node
 
                 eventList.RemoveAt(0); //remove the first item as the message is sent
 
@@ -52,9 +50,10 @@ namespace SNNLib
 
         public void addMessage(Message message)
         {
-            if (message.GetType().Equals(typeof(OutputMessage))) //TODO does this work???
+            max_time = (max_time >= message.Time) ? max_time : message.Time;
+            if (message.GetType().Equals(typeof(OutputMessage)))
             {
-                output[message.sYnapse.Source.LayerIndex].Add(message);
+                output[message.Synapse.Source.LayerIndex].Add(message);
             }
             else
             {
@@ -65,9 +64,9 @@ namespace SNNLib
                 }
                 //insertion sort
                 int start_index = 0;
-                int end_index = eventList.Count; //TODO need to do checking so it doesn't loop inifinitely
+                int end_index = eventList.Count; //TODO need to do checking so it doesn't loop inifinitely //TODO seems to work but still confirm
 
-                while(true) //TODO no checking - is this a problem?
+                while(true)
                 {
                     int centre = (start_index + end_index) / 2;
                     if (centre == start_index)
@@ -140,13 +139,13 @@ namespace SNNLib
     {
         //can only be set privately, but got publicly
         public int Time { get; private set; }
-        public Synapse sYnapse { get; private set; } //TODO name
+        public SynapseObject Synapse { get; private set; }
         public double Val { get; private set; } //passing different values to the nodes. set at one unless needed (e.g. for inhibitory)
 
-        public Message(int time, Synapse synapse, double val = 1)
+        public Message(int time, SynapseObject synapse, double val = 1)
         {
             Time = time;            
-            sYnapse = synapse;
+            Synapse = synapse;
             Val = val;
         }
     }
@@ -154,6 +153,6 @@ namespace SNNLib
     //used for storing output.
     public class OutputMessage : Message
     {
-        public OutputMessage(int time, Synapse synapse, double val = 1) : base(time, synapse, val) { }
+        public OutputMessage(int time, SynapseObject synapse, double val = 1) : base(time, synapse, val) { }
     }
 }

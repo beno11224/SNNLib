@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,16 +7,18 @@ using System.Threading.Tasks;
 
 namespace SNNLib
 {
+    [DebuggerDisplay("Layer = {LayerIndex}, Index = {NodeIndex}")]
     public class Node
     {
         //Each node contains the snapses that go from it to other nodes.
         public double Bias = 0; //same as weights - needs to not be a double?
-        public List<Synapse> Inputs { get; protected set; }
-        public List<Synapse> Outputs { get; protected set; }
+        public List<SynapseObject> Inputs { get; protected set; }
+        public List<SynapseObject> Outputs { get; protected set; }
 
         protected MessageHandling messageHandler;
 
-        public int LayerIndex {get; protected set;}
+        public int LayerIndex { get; protected set; }
+        public int NodeIndex  {get; protected set; }
 
         protected int Delay = 0;
         
@@ -23,17 +26,20 @@ namespace SNNLib
         public bool CurrentlyTraining = false;
 
         public List<Message> InputMessages { get; protected set; }
+        public List<Node> InputMesssageNodes { get; protected set; }
         public List<Message> OutputMessages { get; protected set; }
         
-        public Node(MessageHandling h, int layerIndex)
+        public Node(MessageHandling h, int layerIndex, int nodeIndex)
         {
-            Inputs = new List<Synapse>();
-            Outputs = new List<Synapse>();
+            Inputs = new List<SynapseObject>();
+            Outputs = new List<SynapseObject>();
             messageHandler = h;
             LayerIndex = layerIndex;
+            NodeIndex = nodeIndex;
             Bias = 1; //should be randomised
             Delay = 1;
             InputMessages = new List<Message>();
+            InputMesssageNodes = new List<Node>();
             OutputMessages = new List<Message>();
         }
 
@@ -41,10 +47,10 @@ namespace SNNLib
         {
             if (CurrentlyTraining)
             {
-                OutputMessages.Add(new Message(time, new Synapse(this,null), val)); //TODO the null isn't very helpful
+                OutputMessages.Add(new Message(time, new SynapseObject(this,null), val));
             }
 
-            foreach (Synapse output in Outputs)
+            foreach (SynapseObject output in Outputs)
             {
                 messageHandler.addMessage(new Message(time + Delay, output, val));
             }
@@ -61,15 +67,29 @@ namespace SNNLib
             if (CurrentlyTraining)
             {
                 InputMessages.Add(rx);
+
+                bool contains = false;
+                foreach (LeakyIntegrateAndFireNode n in InputMesssageNodes)
+                {
+                    if (n == rx.Synapse.Source)
+                    {
+                        contains = true;
+                        break;
+                    }
+                }
+                if (!contains)
+                {
+                    InputMesssageNodes.Add(rx.Synapse.Source);
+                }
             }
         }
 
-        public void addSource(Synapse source)
+        public void addSource(SynapseObject source)
         {
             Inputs.Add(source);
         }
 
-        public void addTarget(Synapse target)
+        public void addTarget(SynapseObject target)
         {
             Outputs.Add(target);
         }
@@ -77,6 +97,7 @@ namespace SNNLib
         public virtual void ResetNode()
         {
             InputMessages = new List<Message>();
+            InputMesssageNodes = new List<Node>();
             OutputMessages = new List<Message>();
         }
 
@@ -90,16 +111,16 @@ namespace SNNLib
 
     public class OutputNode : LeakyIntegrateAndFireNode
     {
-        public OutputNode(MessageHandling h, int layerIndex, double lambda = 1, int Excitatory = 1) : base(h, layerIndex, lambda, Excitatory) { }
+        public OutputNode(MessageHandling h, int layerIndex, int nodeIndex, double lambda = 1, int Excitatory = 1) : base(h, layerIndex, nodeIndex, lambda, Excitatory) { }
 
         public override void Spike(int time, double val = 1)
         {
             if (CurrentlyTraining)
             {
-                OutputMessages.Add(new OutputMessage(time, new Synapse(this,null), val));
+                OutputMessages.Add(new OutputMessage(time, new SynapseObject(this,null), val));
             }
 
-            messageHandler.addMessage(new OutputMessage(time + Delay, new Synapse(this,null), val));
+            messageHandler.addMessage(new OutputMessage(time + Delay, new SynapseObject(this,null), val));
         }
     }
 
@@ -114,8 +135,8 @@ namespace SNNLib
         int TimePrevSpike = 0; //time that the potential was calculated at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
         int Excitatory = 1;
         double Lambda = 1;
-
-        public LeakyIntegrateAndFireNode(MessageHandling h, int layerIndex, double lambda = 1, int excitatory = 1) : base(h,layerIndex)
+        
+        public LeakyIntegrateAndFireNode(MessageHandling h, int layerIndex, int nodeIndex, double lambda = 1, int excitatory = 1) : base(h,layerIndex,nodeIndex)
         {
             Excitatory = excitatory;
             Lambda = lambda;
@@ -123,8 +144,7 @@ namespace SNNLib
                 
         public new void PostFire()
         {
-            //TODO decay
-            Accumulator = Accumulator*0.9;
+            //Accumulator = Accumulator*0.9;            //TODO maybe do decay in here??
         }
 
         public override void ReceiveData(Message rx)
@@ -138,7 +158,7 @@ namespace SNNLib
 
             Accumulator = Accumulator * Math.Exp((TimePrevSpike - rx.Time) * lambda); //decay accumulator correctly
 
-            Accumulator += rx.sYnapse.Weight;
+            Accumulator += rx.Synapse.Weight;
 
             TimePrevSpike = rx.Time;
 
@@ -157,7 +177,8 @@ namespace SNNLib
         }
     }
 
-    public class Synapse
+    [DebuggerDisplay("Source = {Source.LayerIndex}_{Source.NodeIndex} Target = {Target.LayerIndex}_{Target.NodeIndex}")]
+    public class SynapseObject
     {
         //store the associated weight on the input edge
         //public for ease
@@ -167,7 +188,7 @@ namespace SNNLib
         public double Weight;
 
         //default weight of 1
-        public Synapse(Node source, Node target, double weight = 1)
+        public SynapseObject(Node source, Node target, double weight = 1)
         {
             Source = source;
             Target = target;
