@@ -51,7 +51,7 @@ namespace SNNLib
             //setup (input and) hidden layers & connections to previous layers
             for (int layer_count = 0; layer_count < OutputLayerIndex; layer_count++)
             {
-                double input_sum = 0;
+                //double input_sum = 0;
 
                 List<LeakyIntegrateAndFireNode> temp_layer = new List<LeakyIntegrateAndFireNode>();
                                 
@@ -75,7 +75,7 @@ namespace SNNLib
                         SynapseObject s = new SynapseObject(prev_node, new_node, 1);
                         prev_node.addTarget(s);
                         new_node.addSource(s);
-                        input_sum++;
+                        //input_sum++;
                     }
 
                     if (layer_count == 0) // input layer
@@ -84,22 +84,30 @@ namespace SNNLib
                         SynapseObject input_synapse = new SynapseObject(null, new_node, 1);
                         new_node.addSource(input_synapse);
                         InputSynapses[node_count] = input_synapse;
-                        input_sum++;
+                        //input_sum++;
+                    }
+
+                    double input_norm = 3 * Math.Sqrt(3 / new_node.Inputs.Count);
+
+                    new_node.Bias = input_norm;///*alpha*/3 * Math.Sqrt(3/new_node.Inputs.Count);
+                    foreach (SynapseObject input in new_node.Inputs)
+                    {
+                        input.Weight = input_norm;//1 / new_node.Inputs.Count; //not a 'uniform' distribution - is this right??, doesnt all add up to 1 across the layer...
                     }
 
                     temp_layer.Add(new_node);
                 }
-                
+                /*
                 foreach(Node n in temp_layer) //TODO remember copy of code is below too.
                 {
-                    n.Bias = /*alpha*/3 * Math.Sqrt(3/input_sum); //TODO set bias
+                    n.Bias = *//*alpha*//*3 * Math.Sqrt(3/input_sum);
                     foreach (SynapseObject input in n.Inputs)
                     {
                         input.Weight = 1/input_sum; //not a 'uniform' distribution - is this right??
                     }
                 }
 
-                input_sum = 0;
+                input_sum = 0;*/
 
 
                 /* //TODO work out how this affects everything and if it's needed/wanted
@@ -123,7 +131,7 @@ namespace SNNLib
 
             List<LeakyIntegrateAndFireNode> outs = new List<LeakyIntegrateAndFireNode>();
 
-            double input_sum_out = 0;
+           // double input_sum_out = 0;
 
             //setup output layer
             for (int node_count = 0; node_count < layers[OutputLayerIndex]; node_count++)
@@ -143,20 +151,28 @@ namespace SNNLib
                     SynapseObject s = new SynapseObject(prev_node, outnode, 1);
                     prev_node.addTarget(s);
                     outnode.addSource(s);
-                    input_sum_out++;
+                   // input_sum_out++;
+                }
+
+                double input_norm = 3 * Math.Sqrt(3 / outnode.Inputs.Count);
+
+                outnode.Bias = input_norm; // /*alpha*/3 * Math.Sqrt(3 / outnode.Inputs.Count); //TODO set bias //TODO input sum out is wrong... should be per node not per layer
+                foreach (SynapseObject input in outnode.Inputs)
+                {
+                    input.Weight = input_norm;// 1 / outnode.Inputs.Count; //not a 'uniform' distribution - is this right??
                 }
 
                 outs.Add(outnode);
             }
 
-            foreach (Node n in outs)
+          /*  foreach (Node n in outs)
             {
-                n.Bias = /*alpha*/3 * Math.Sqrt(3 / input_sum_out); //TODO set bias //TODO input sum out is wrong... should be per node not per layer
+                n.Bias =*/ /*alpha*//*3 * Math.Sqrt(3 / input_sum_out); //TODO set bias //TODO input sum out is wrong... should be per node not per layer
                 foreach (SynapseObject input in n.Inputs)
                 {
                     input.Weight = 1 / input_sum_out; //not a 'uniform' distribution - is this right??
                 }
-            }
+            }*/
 
             Nodes[OutputLayerIndex] = outs; //add the output nodes to the last layer
         }
