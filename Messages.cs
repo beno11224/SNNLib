@@ -53,7 +53,7 @@ namespace SNNLib
             max_time = (max_time >= message.Time) ? max_time : message.Time;
             if (message.GetType().Equals(typeof(OutputMessage)))
             {
-                output[message.Synapse.Source.LayerIndex].Add(message);
+                output[message.Synapse.Source.NodeIndex].Add(message);
             }
             else
             {

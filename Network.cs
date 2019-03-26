@@ -51,6 +51,8 @@ namespace SNNLib
             //setup (input and) hidden layers & connections to previous layers
             for (int layer_count = 0; layer_count < OutputLayerIndex; layer_count++)
             {
+                double input_sum = 0;
+
                 List<LeakyIntegrateAndFireNode> temp_layer = new List<LeakyIntegrateAndFireNode>();
                                 
                 for (int node_count = 0; node_count < layers[layer_count]; node_count++)
@@ -73,6 +75,7 @@ namespace SNNLib
                         SynapseObject s = new SynapseObject(prev_node, new_node, 1);
                         prev_node.addTarget(s);
                         new_node.addSource(s);
+                        input_sum++;
                     }
 
                     if (layer_count == 0) // input layer
@@ -81,11 +84,24 @@ namespace SNNLib
                         SynapseObject input_synapse = new SynapseObject(null, new_node, 1);
                         new_node.addSource(input_synapse);
                         InputSynapses[node_count] = input_synapse;
+                        input_sum++;
                     }
 
                     temp_layer.Add(new_node);
                 }
-                               
+                
+                foreach(Node n in temp_layer) //TODO remember copy of code is below too.
+                {
+                    n.Bias = /*alpha*/3 * Math.Sqrt(3/input_sum); //TODO set bias
+                    foreach (SynapseObject input in n.Inputs)
+                    {
+                        input.Weight = 1/input_sum; //not a 'uniform' distribution - is this right??
+                    }
+                }
+
+                input_sum = 0;
+
+
                 /* //TODO work out how this affects everything and if it's needed/wanted
                 foreach(LeakyIntegrateAndFireNode outer in temp_layer)
                 {
@@ -107,9 +123,11 @@ namespace SNNLib
 
             List<LeakyIntegrateAndFireNode> outs = new List<LeakyIntegrateAndFireNode>();
 
+            double input_sum_out = 0;
+
             //setup output layer
             for (int node_count = 0; node_count < layers[OutputLayerIndex]; node_count++)
-            {
+            {                
                 OutputNode outnode;
                 if (random.Next(0, 100) < inhibitory_percentages[0])
                 {
@@ -125,9 +143,19 @@ namespace SNNLib
                     SynapseObject s = new SynapseObject(prev_node, outnode, 1);
                     prev_node.addTarget(s);
                     outnode.addSource(s);
+                    input_sum_out++;
                 }
 
                 outs.Add(outnode);
+            }
+
+            foreach (Node n in outs)
+            {
+                n.Bias = /*alpha*/3 * Math.Sqrt(3 / input_sum_out); //TODO set bias //TODO input sum out is wrong... should be per node not per layer
+                foreach (SynapseObject input in n.Inputs)
+                {
+                    input.Weight = 1 / input_sum_out; //not a 'uniform' distribution - is this right??
+                }
             }
 
             Nodes[OutputLayerIndex] = outs; //add the output nodes to the last layer
@@ -171,7 +199,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.001, double tau_mp = 100)
+        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1)
         {
             if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
@@ -231,9 +259,9 @@ namespace SNNLib
 
                     if (current_layer != Nodes[OutputLayerIndex])
                     {
-                        foreach (SynapseObject j in i.Outputs) //use j to match equations
+                        foreach (SynapseObject i_j_synapse in i.Outputs) //use j to match equations
                         {
-                            sum_weight_errors += j.Weight * j.Target.LastDeltaI; //TODO not storing the error correctly
+                            sum_weight_errors += i_j_synapse.Weight * i_j_synapse.Target.LastDeltaI; //TODO not storing the error correctly
                         }
 
                         i.LastDeltaI = g_ratio * delta_norm * sum_weight_errors;
@@ -262,7 +290,7 @@ namespace SNNLib
 
                     foreach (SynapseObject j in i.Outputs) //use j to match equations
                     {
-                        double x_j = 1;
+                        double x_j = 0;
 
                         foreach (Message m in j.Target.InputMessages) //iterate over all messages(spikes) received by that node
                         {
@@ -274,7 +302,7 @@ namespace SNNLib
                         j.Weight -= change_w; //TODO this resulted in larger weight???
                     }
 
-                    double a_i = 1;
+                    double a_i = 0;
 
                     foreach (Message m in i.OutputMessages) //iterate over all messages(spikes) sent by that node
                     {
