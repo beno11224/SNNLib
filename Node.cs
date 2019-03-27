@@ -149,7 +149,7 @@ namespace SNNLib
 
         public override void ReceiveData(Message rx)
         {
-            int lambda = 1; //decay constant - must be defined somewhere
+            double lambda = 0.001; //decay constant - must be defined somewhere
             base.ReceiveData(rx); //ensure parent method is run.
 
             int time_diff = rx.Time - TimePrevSpike;
