@@ -14,7 +14,7 @@ namespace SNNLib
         SynapseObject[] InputSynapses;
         int OutputLayerIndex;
 
-        public Random random = new Random();
+        public Random random = new Random(Seed:1); //TODO allow for seed
 
         double Lambda = 0.001;
 
@@ -184,7 +184,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.1, double weight_beta = 0.1, double weight_lambda = 0.1)
+        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.2, double weight_beta = 0.005, double weight_lambda = 1)
         {
             if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
@@ -303,28 +303,28 @@ namespace SNNLib
                     }
                     else
                     {
-                        //TODO move this up
                         double output_layer_normalisation = max_outer_delta_i/( (ml/Ml) * Math.Sqrt(3.0 / (double)current_layer.Count));
 
                         i.LastDeltaI = i.LastDeltaI / output_layer_normalisation;
 
                         sq_sum += i.LastDeltaI * i.LastDeltaI;
-
-                        //normalise output layer
-                        //TODO
                     }
 
-                    //-----
-                    double weight_sq_sum = 0; //TODO is this using the input neurons?
+                    /*
+                    double weight_sq_sum = 0;
                     
-                    foreach (SynapseObject input_synapse in i.Inputs) //ER???
+                    foreach (SynapseObject input_synapse in i.Inputs)
                     {
                         weight_sq_sum += input_synapse.Weight * input_synapse.Weight - 1;
                     }
 
-                    double weight_decay = weight_beta * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO this is wrong!!!
+                    double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
 
-                    //-----
+                    foreach(SynapseObject input_synapse in i.Inputs)
+                    {
+                        input_synapse.Weight /= weight_decay;
+                    }
+                    */
 
                     foreach (SynapseObject j in i.Outputs) //use j to match equations
                     {
@@ -336,10 +336,14 @@ namespace SNNLib
                             //x_j = x_j * Math.Exp((m.Time - current_time) * Lambda);
                             //x_j+= j.Weight; 
                         }
-
-                        double this_weight_decay = weight_decay * j.Weight;
-
+                        
                         double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j;
+
+                        //if (i.LastDeltaI < 0)
+                        //{
+                        //    change_w *= -1;
+                        //}
+
                         j.Weight -= change_w; //TODO this resulted in larger weight???
                     }
 
@@ -353,14 +357,17 @@ namespace SNNLib
                     }
 
                     double change_th = eta_th * d_th_norm * i.LastDeltaI * a_i;
-                    i.Bias -= change_th;
 
-                    //double bias_threshold = 0.1;
-
-                    if (i.Bias < min_bias)
+                    if (i.Bias - change_th < min_bias && layer_count != 0) //TODO not hitting this??
                     {
-                        i.Bias = min_bias;
-                        //TODO INCREASE all weights by same ammount...
+                        foreach(SynapseObject input_synapse in i.Inputs)
+                        {
+                            input_synapse.Weight += change_th;
+                        }
+                    }
+                    else
+                    {
+                        i.Bias -= change_th;
                     }
                 }
 
