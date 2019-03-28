@@ -184,7 +184,7 @@ namespace SNNLib
         }
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1)
+        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.1, double weight_beta = 0.1, double weight_lambda = 0.1)
         {
             if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
@@ -196,6 +196,8 @@ namespace SNNLib
             int current_time = messageHandling.max_time;
 
             List<LeakyIntegrateAndFireNode> current_layer;
+            
+            Console.Out.Write("New_layer\n");
 
             //iterate backwards through layers (backpropagration)
             for (int layer_count = OutputLayerIndex; layer_count >= 0; layer_count--)
@@ -252,13 +254,20 @@ namespace SNNLib
 
                         outer_node.LastDeltaI = target_output_a - actual_output_a;
 
+                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
+                        {
+                            file.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
+                        }
+
+                        Console.Out.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
+
                         if (Math.Abs(outer_node.LastDeltaI) > max_outer_delta_i)
                         {
                             max_outer_delta_i = Math.Abs(outer_node.LastDeltaI); //This is the correct way round according to normal backpropagation
                         }
                     }
                 }
-
+                
                 foreach (Node i in current_layer)
                 {                    
                     double ml = i.InputMesssageNodes.Count; //number of active synapses of a neuron (assumed over all neurons in layer) //TODO
@@ -285,6 +294,12 @@ namespace SNNLib
                         }
 
                         i.LastDeltaI = g_ratio * delta_norm * sum_weight_errors;
+
+                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
+                        {                           
+                            file.Write(i.LastDeltaI*i.LastDeltaI + ",");
+                        }
+                        //Console.Out.Write(i.LastDeltaI * i.LastDeltaI + ",");
                     }
                     else
                     {
@@ -299,6 +314,18 @@ namespace SNNLib
                         //TODO
                     }
 
+                    //-----
+                    double weight_sq_sum = 0; //TODO is this using the input neurons?
+                    
+                    foreach (SynapseObject input_synapse in i.Inputs) //ER???
+                    {
+                        weight_sq_sum += input_synapse.Weight * input_synapse.Weight - 1;
+                    }
+
+                    double weight_decay = weight_beta * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO this is wrong!!!
+
+                    //-----
+
                     foreach (SynapseObject j in i.Outputs) //use j to match equations
                     {
                         double x_j = 0;
@@ -309,6 +336,8 @@ namespace SNNLib
                             //x_j = x_j * Math.Exp((m.Time - current_time) * Lambda);
                             //x_j+= j.Weight; 
                         }
+
+                        double this_weight_decay = weight_decay * j.Weight;
 
                         double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j;
                         j.Weight -= change_w; //TODO this resulted in larger weight???
@@ -325,6 +354,19 @@ namespace SNNLib
 
                     double change_th = eta_th * d_th_norm * i.LastDeltaI * a_i;
                     i.Bias -= change_th;
+
+                    //double bias_threshold = 0.1;
+
+                    if (i.Bias < min_bias)
+                    {
+                        i.Bias = min_bias;
+                        //TODO INCREASE all weights by same ammount...
+                    }
+                }
+
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
+                {
+                    file.Write("NEXTLAYER,");
                 }
             }
 
