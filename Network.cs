@@ -238,21 +238,23 @@ namespace SNNLib
                         
                         foreach (Message m in outer_node.OutputMessages)  //iterate over all messages(spikes) sent by that node
                         {
-                            actual_output_a = actual_output_a * Math.Exp((current_time - m.Time) * Lambda);
-                            actual_output_a++;//= m.Synapse.Weight;                            
+                            actual_output_a += Math.Exp((m.Time - current_time) * Lambda);
+                            //actual_output_a = actual_output_a * Math.Exp((current_time - m.Time) * Lambda);
+                            //actual_output_a++;//= m.Synapse.Weight;                            
                         }
 
                         foreach (Message m in trainingTarget[outer_node.NodeIndex]) //iterate over all target values
                         {
-                            target_output_a = target_output_a * Math.Exp((current_time - m.Time) * Lambda);
-                            target_output_a++;
+                            target_output_a += Math.Exp((m.Time - current_time) * Lambda);
+                            //target_output_a = target_output_a * Math.Exp((current_time - m.Time) * Lambda);
+                            //target_output_a++;
                         }
 
                         outer_node.LastDeltaI = target_output_a - actual_output_a;
 
                         if (Math.Abs(outer_node.LastDeltaI) > max_outer_delta_i)
                         {
-                            max_outer_delta_i = Math.Abs(outer_node.LastDeltaI); //TODO store
+                            max_outer_delta_i = Math.Abs(outer_node.LastDeltaI); //This is the correct way round according to normal backpropagation
                         }
                     }
                 }
@@ -337,6 +339,39 @@ namespace SNNLib
 
             }
 
+        }
+
+        public double MSE(List<Message>[] target, List<Message>[] actual, double currentTime) //TODO for currentTime need to use maxTime again
+        {
+            if (target.Length != actual.Length)
+            {
+                throw new Exception("target and actual must be the same length");
+            }
+
+            double sum_squared_error = 0;
+
+            for (int count = 0; count < target.Length; count++)
+            {
+
+                double actual_value = 0;
+                double target_value = 0;
+
+                foreach (Message m in actual[count])
+                {
+                    actual_value += Math.Exp((m.Time - currentTime) * Lambda);
+                }
+
+                foreach(Message m in target[count])
+                {
+                    target_value += Math.Exp((m.Time - currentTime) * Lambda);
+                }
+
+                double error = target_value - actual_value;
+
+                sum_squared_error += error * error;
+            }
+
+            return sum_squared_error / target.Length;
         }
     }
 }
