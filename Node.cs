@@ -149,16 +149,18 @@ namespace SNNLib
 
         public override void ReceiveData(Message rx)
         {
-            double lambda = 0.001; //decay constant - must be defined somewhere
             base.ReceiveData(rx); //ensure parent method is run.
-
-            int time_diff = rx.Time - TimePrevSpike;
-
+            
             //if we receive a message then there was a spike on that neuron.
 
-            Accumulator = Accumulator * Math.Exp((TimePrevSpike - rx.Time) * lambda); //decay accumulator correctly
+            Accumulator = Accumulator * Math.Exp((TimePrevSpike - rx.Time) * Lambda); //decay accumulator correctly
 
             Accumulator += rx.Synapse.Weight;
+
+            if (Accumulator < -Bias)
+            {
+                Accumulator = -Bias;
+            }
 
             TimePrevSpike = rx.Time;
 
