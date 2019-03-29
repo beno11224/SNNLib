@@ -90,20 +90,6 @@ namespace SNNLib
                     temp_layer.Add(new_node);
                 }
 
-                /* //TODO work out how this affects everything and if it's needed/wanted
-                foreach(LeakyIntegrateAndFireNode outer in temp_layer)
-                {
-                    foreach(LeakyIntegrateAndFireNode inner in temp_layer)
-                    {
-                        if (outer != inner)
-                        {
-                            Synapse s = new Synapse(outer, inner,0.1);
-                            outer.addTarget(s);
-                            inner.addSource(s);
-                        }
-                    }
-                }*/
-
                 prev_layer = new List<LeakyIntegrateAndFireNode>(temp_layer);
                 
                 Nodes[layer_count] = prev_layer;
@@ -146,6 +132,8 @@ namespace SNNLib
             Nodes[OutputLayerIndex] = outs; //add the output nodes to the last layer
         }
 
+
+
         public List<Message>[] Run(List<Message>[] input, bool training = false)
         {
             messageHandling.resetLists();
@@ -183,6 +171,9 @@ namespace SNNLib
             return messageHandling.getOutput();
         }
 
+
+
+
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
         public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.2, double weight_beta = 0.005, double weight_lambda = 1)
         {
@@ -198,10 +189,13 @@ namespace SNNLib
             List<LeakyIntegrateAndFireNode> current_layer;
             
             Console.Out.Write("New_layer\n");
-
+            
             //iterate backwards through layers (backpropagration)
             for (int layer_count = OutputLayerIndex; layer_count >= 0; layer_count--)
             {
+               
+                double sum_delta_i_squared = 0; //TODO remove
+
                 current_layer = Nodes[layer_count];
 
                 double g_bar = 0;
@@ -209,27 +203,21 @@ namespace SNNLib
                 double Nl = current_layer.Count; //number of Neurons in layer
                 double nl = 0; //number of firing neurons in layer
 
-
-                //TODO what about inhibiting neurons - surely they are the reverse?
-
-
                 foreach (Node node in current_layer) //iterate over current layer (start with 'output' nodes)
-                {
-                    double g = 1 / node.Bias;
-                    g_bar += (g * g);
-
+                {                    
                     if (node.OutputMessages.Count > 0)
                     {
+                        double g = 1 / node.Bias;
+                        g_bar += (g * g);
+
                         nl++;
                     }
                 }
 
-                g_bar = Math.Sqrt(g_bar / current_layer.Count); //g_bar is now useable
+                g_bar = Math.Sqrt(g_bar / nl); //g_bar is now useable
 
                 //calcualte delta i for output nodes in one pass.
                 double max_outer_delta_i = 0;
-
-                double sq_sum = 0; //TODO remove
 
                 if (layer_count == OutputLayerIndex)
                 {
@@ -253,7 +241,7 @@ namespace SNNLib
                         }
 
                         outer_node.LastDeltaI = target_output_a - actual_output_a;
-
+                        
                         using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
                         {
                             file.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
@@ -267,7 +255,10 @@ namespace SNNLib
                         }
                     }
                 }
-                
+
+                double[] x_arr = new double[current_layer.Count];
+                double[] a_arr = new double[current_layer.Count];
+
                 foreach (Node i in current_layer)
                 {                    
                     double ml = i.InputMesssageNodes.Count; //number of active synapses of a neuron (assumed over all neurons in layer) //TODO
@@ -290,10 +281,20 @@ namespace SNNLib
                     {
                         foreach (SynapseObject i_j_synapse in i.Outputs) //use j to match equations
                         {
+                            if (i_j_synapse.Target.OutputMessages.Count == 0)
+                            {
+                                continue;
+                            }
                             sum_weight_errors += i_j_synapse.Weight * i_j_synapse.Target.LastDeltaI; //TODO not storing the error correctly
                         }
 
                         i.LastDeltaI = g_ratio * delta_norm * sum_weight_errors;
+
+                        //TODO maybe not just around this bit
+                        if (i.OutputMessages.Count > 0)
+                        {
+                            sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
+                        }
 
                         using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
                         {                           
@@ -306,8 +307,8 @@ namespace SNNLib
                         double output_layer_normalisation = max_outer_delta_i/( (ml/Ml) * Math.Sqrt(3.0 / (double)current_layer.Count));
 
                         i.LastDeltaI = i.LastDeltaI / output_layer_normalisation;
-
-                        sq_sum += i.LastDeltaI * i.LastDeltaI;
+                       
+                        sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
                     }
 
                     /*
@@ -336,7 +337,9 @@ namespace SNNLib
                             //x_j = x_j * Math.Exp((m.Time - current_time) * Lambda);
                             //x_j+= j.Weight; 
                         }
-                        
+
+                        x_arr[i.NodeIndex] = x_j;
+
                         double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j;
 
                         //if (i.LastDeltaI < 0)
@@ -344,7 +347,7 @@ namespace SNNLib
                         //    change_w *= -1;
                         //}
 
-                        j.Weight -= change_w; //TODO this resulted in larger weight???
+                        j.Weight += change_w; //TODO this resulted in larger weight???
                     }
 
                     double a_i = 0;
@@ -355,6 +358,8 @@ namespace SNNLib
                         //a_i = a_i * Math.Exp((m.Time - current_time) * Lambda); //Change as discussed //TODO tonight
                         //a_i += m.Synapse.Weight; //TODO this doesn't make sense...
                     }
+
+                    a_arr[i.NodeIndex] = a_i;
 
                     double change_th = eta_th * d_th_norm * i.LastDeltaI * a_i;
 
@@ -371,12 +376,33 @@ namespace SNNLib
                     }
                 }
 
+                double[] new_ai = new double[current_layer.Count];
+                
+                foreach(Node n in current_layer)
+                {
+                    //TODO recalcualte a_i
+                    new_ai[n.NodeIndex] = 0;
+                    double sum = 0;
+                    foreach(SynapseObject k in n.Inputs)
+                    {
+                        if (k.Target.OutputMessages.Count > 0)
+                        {
+                            sum += x_arr[n.NodeIndex] * k.Weight;
+                        }
+                    }
+                    new_ai[n.NodeIndex] = sum / n.Bias;
+                }
+
                 using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
                 {
                     file.Write("NEXTLAYER,");
                 }
-            }
+                
 
+                sum_delta_i_squared /= 9;
+
+            }
+            
             //tell nodes training has finished
             foreach (List<LeakyIntegrateAndFireNode> current_nodes in Nodes)
             {
