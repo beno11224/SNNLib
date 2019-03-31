@@ -311,21 +311,33 @@ namespace SNNLib
                         sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
                     }
 
-                    /*
-                    double weight_sq_sum = 0;
-                    
-                    foreach (SynapseObject input_synapse in i.Inputs)
+                    if (layer_count != 0)
                     {
-                        weight_sq_sum += input_synapse.Weight * input_synapse.Weight - 1;
-                    }
+                        double weight_sq_sum = 0;
 
-                    double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
+                        double max_abs_weight = 0;
 
-                    foreach(SynapseObject input_synapse in i.Inputs)
-                    {
-                        input_synapse.Weight /= weight_decay;
+                        foreach (SynapseObject input_synapse in i.Inputs)
+                        {
+                            weight_sq_sum += input_synapse.Weight * input_synapse.Weight - 1;
+
+                            double abs_weight = Math.Abs(input_synapse.Weight);
+
+                            if (abs_weight > max_abs_weight)
+                            {
+                                max_abs_weight = abs_weight;
+                            }
+                        }
+
+                        double weight_divide_factor = max_abs_weight / Math.Sqrt(3.0 / (double)i.Inputs.Count);
+
+                        double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
+
+                        foreach (SynapseObject input_synapse in i.Inputs)
+                        {
+                            input_synapse.Weight /= weight_divide_factor;//weight_decay;
+                        }
                     }
-                    */
 
                     foreach (SynapseObject j in i.Outputs) //use j to match equations
                     {
@@ -340,7 +352,7 @@ namespace SNNLib
 
                         x_arr[i.NodeIndex] = x_j;
 
-                        double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j;
+                        double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j; //TODO no reduction by size of x_j or i.LastDeltai - keeps growing once weights get above 1
 
                         //if (i.LastDeltaI < 0)
                         //{
