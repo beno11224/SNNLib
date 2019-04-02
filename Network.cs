@@ -188,7 +188,7 @@ namespace SNNLib
 
             List<LeakyIntegrateAndFireNode> current_layer;
             
-            Console.Out.Write("New_layer\n");
+            //Console.Out.Write("New_layer\n");
             
             //iterate backwards through layers (backpropagration)
             for (int layer_count = OutputLayerIndex; layer_count >= 0; layer_count--)
@@ -228,16 +228,12 @@ namespace SNNLib
                         
                         foreach (Message m in outer_node.OutputMessages)  //iterate over all messages(spikes) sent by that node
                         {
-                            actual_output_a += Math.Exp((m.Time - current_time) * Lambda);
-                            //actual_output_a = actual_output_a * Math.Exp((current_time - m.Time) * Lambda);
-                            //actual_output_a++;//= m.Synapse.Weight;                            
+                            actual_output_a += Math.Exp((m.Time - current_time) * Lambda);                     
                         }
 
                         foreach (Message m in trainingTarget[outer_node.NodeIndex]) //iterate over all target values
                         {
                             target_output_a += Math.Exp((m.Time - current_time) * Lambda);
-                            //target_output_a = target_output_a * Math.Exp((current_time - m.Time) * Lambda);
-                            //target_output_a++;
                         }
 
                         outer_node.LastDeltaI = target_output_a - actual_output_a;
@@ -247,7 +243,7 @@ namespace SNNLib
                             file.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
                         }
 
-                        Console.Out.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
+                        //Console.Out.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
 
                         if (Math.Abs(outer_node.LastDeltaI) > max_outer_delta_i)
                         {
@@ -277,6 +273,7 @@ namespace SNNLib
 
                     double sum_weight_errors = 0;
 
+                    //work out error 
                     if (layer_count != OutputLayerIndex) //current_layer != Nodes[OutputLayerIndex])
                     {
                         foreach (SynapseObject i_j_synapse in i.Outputs) //use j to match equations
@@ -290,17 +287,17 @@ namespace SNNLib
 
                         i.LastDeltaI = g_ratio * delta_norm * sum_weight_errors;
 
-                        //TODO maybe not just around this bit
+                        /*
                         if (i.OutputMessages.Count > 0)
                         {
                             sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
                         }
+                        */
 
                         using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
                         {                           
                             file.Write(i.LastDeltaI*i.LastDeltaI + ",");
                         }
-                        //Console.Out.Write(i.LastDeltaI * i.LastDeltaI + ",");
                     }
                     else
                     {
@@ -310,7 +307,25 @@ namespace SNNLib
                        
                         sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
                     }
+                    
+                    /*
+                    //TODO this weight decay thing just kills the weights SOO quickly
+                    double weight_sq_sum = 0;
+                    
+                    foreach (SynapseObject input_synapse in i.Inputs)
+                    {
+                        weight_sq_sum += input_synapse.Weight * input_synapse.Weight - 1;
+                    }
+                    
+                    double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
 
+                    foreach (SynapseObject input_synapse in i.Inputs)
+                    {
+                        input_synapse.Weight *= weight_decay;//weight_normalisation;
+                    }
+                    */
+                    
+                    // restrict all weights so their squares add up to 0
                     if (layer_count != 0)
                     {
                         double weight_sq_sum = 0;
@@ -333,31 +348,33 @@ namespace SNNLib
 
                         double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
 
-                        foreach (SynapseObject input_synapse in i.Inputs)
+                        if (max_abs_weight >= 10)
                         {
-                            input_synapse.Weight /= weight_divide_factor;//weight_decay;
+                            foreach (SynapseObject input_synapse in i.Inputs)
+                            {
+                                input_synapse.Weight /= weight_divide_factor;//weight_normalisation;
+                            }
                         }
                     }
-
+                    
+            
                     foreach (SynapseObject j in i.Outputs) //use j to match equations
                     {
                         double x_j = 0;
 
-                        foreach (Message m in j.Target.InputMessages) //iterate over all messages(spikes) received by that node
+                        //TODO Not ALL inputs, just for THAT synapse
+
+                        foreach (Message m in j.Target.InputMessages) //iterate over all messages(spikes) received by that node 
                         {
-                            x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
-                            //x_j = x_j * Math.Exp((m.Time - current_time) * Lambda);
-                            //x_j+= j.Weight; 
+                            if (m.Synapse == j)
+                            {
+                                x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
+                            }
                         }
 
                         x_arr[i.NodeIndex] = x_j;
-
-                        double change_w = eta_w * d_w_norm * i.LastDeltaI * x_j; //TODO no reduction by size of x_j or i.LastDeltai - keeps growing once weights get above 1
-
-                        //if (i.LastDeltaI < 0)
-                        //{
-                        //    change_w *= -1;
-                        //}
+                        //TODO here----------------------------
+                        double change_w = eta_w * d_w_norm * (i.LastDeltaI/* + weight_decay*/) * x_j; //TODO no reduction by size of x_j or i.LastDeltai - keeps growing once weights get above 1
 
                         j.Weight += change_w; //TODO this resulted in larger weight???
                     }
@@ -367,8 +384,6 @@ namespace SNNLib
                     foreach (Message m in i.OutputMessages) //iterate over all messages(spikes) sent by that node
                     {
                         a_i += m.Synapse.Weight * Math.Exp((m.Time - current_time) * Lambda);
-                        //a_i = a_i * Math.Exp((m.Time - current_time) * Lambda); //Change as discussed //TODO tonight
-                        //a_i += m.Synapse.Weight; //TODO this doesn't make sense...
                     }
 
                     a_arr[i.NodeIndex] = a_i;
@@ -388,6 +403,8 @@ namespace SNNLib
                     }
                 }
 
+                /*
+                //calculating different a_i thing from paper
                 double[] new_ai = new double[current_layer.Count];
                 
                 foreach(Node n in current_layer)
@@ -404,15 +421,12 @@ namespace SNNLib
                     }
                     new_ai[n.NodeIndex] = sum / n.Bias;
                 }
+                */
 
                 using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
                 {
-                    file.Write("NEXTLAYER,");
-                }
-                
-
-                sum_delta_i_squared /= 9;
-
+                    file.Write("NEXTLAYER,"); //TODO write all this in RUN instead, or give the option for run to.
+                }                
             }
             
             //tell nodes training has finished

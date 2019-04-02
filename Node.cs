@@ -37,7 +37,7 @@ namespace SNNLib
             LayerIndex = layerIndex;
             NodeIndex = nodeIndex;
             Bias = 1; //should be randomised
-            Delay = 1;
+            Delay = 0;
             InputMessages = new List<Message>();
             InputMesssageNodes = new List<Node>();
             OutputMessages = new List<Message>();
