@@ -320,7 +320,7 @@ namespace SNNLib
                         {
                             if (m.Synapse == j)
                             {
-                                x_j += /*j.Weight */ Math.Exp((m.Time - current_time) * Lambda);
+                                x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
                             }
                         }
 
@@ -335,7 +335,7 @@ namespace SNNLib
 
                     foreach (Message m in i.OutputMessages) //iterate over all messages(spikes) sent by that node
                     {
-                        a_i += /*m.Synapse.Weight */ Math.Exp((m.Time - current_time) * Lambda); //TODO what about the weights - eq doesnt contain them
+                        a_i += m.Synapse.Weight * Math.Exp((m.Time - current_time) * Lambda); //TODO what about the weights - eq doesnt contain them
                     }
 
                     a_arr[i.NodeIndex] = a_i;
