@@ -111,7 +111,7 @@ namespace SNNLib
 
 
 
-        public List<Message>[] Run(List<Message>[] input, bool training = false)
+        public List<Message>[] Run(List<Message>[] input, string printLocation = "")
         {
             messageHandling.resetLists();
 
@@ -145,6 +145,23 @@ namespace SNNLib
                 }
             }
 
+            if (printLocation != "")
+            {
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(printLocation, true))
+                {
+                    file.Write("\n");
+                    foreach (List<LeakyIntegrateAndFireNode> node_list in Nodes)
+                    {
+                        foreach (Node n in node_list)
+                        {
+                            {
+                                file.Write(n.LastDeltaI * n.LastDeltaI + ",");
+                            }
+                        }
+                        file.Write("NEXTLAYER,");
+                    }
+                }
+            }
             return messageHandling.getOutput();
         }
 
@@ -152,7 +169,7 @@ namespace SNNLib
 
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.2, double weight_beta = 0.005, double weight_lambda = 1)
+        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, string printLocation = "", double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.2, double weight_beta = 0.005, double weight_lambda = 1)
         {
             if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
@@ -160,7 +177,7 @@ namespace SNNLib
             }
             
             //do the forward pass to get output
-            List<Message>[] output = Run(trainingInput, training: true);
+            List<Message>[] output = Run(trainingInput, printLocation);
             int current_time = messageHandling.max_time;
 
             List<LeakyIntegrateAndFireNode> current_layer;
@@ -168,9 +185,6 @@ namespace SNNLib
             //iterate backwards through layers (backpropagration)
             for (int layer_count = OutputLayerIndex; layer_count >= 0; layer_count--)
             {
-               
-                double sum_delta_i_squared = 0; //TODO remove
-
                 current_layer = Nodes[layer_count];
 
                 double g_bar = 0;
@@ -212,14 +226,7 @@ namespace SNNLib
                         }
 
                         outer_node.LastDeltaI = target_output_a - actual_output_a;
-                        
-                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
-                        {
-                            file.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
-                        }
-
-                        //Console.Out.Write(outer_node.LastDeltaI * outer_node.LastDeltaI + ",");
-
+                                              
                         if (Math.Abs(outer_node.LastDeltaI) > max_outer_delta_i)
                         {
                             max_outer_delta_i = Math.Abs(outer_node.LastDeltaI); //This is the correct way round according to normal backpropagation
@@ -261,18 +268,6 @@ namespace SNNLib
                         }
 
                         i.LastDeltaI = g_ratio * delta_norm * sum_weight_errors;
-
-                        /*
-                        if (i.OutputMessages.Count > 0)
-                        {
-                            sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
-                        }
-                        */
-
-                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
-                        {                           
-                            file.Write(i.LastDeltaI*i.LastDeltaI + ",");
-                        }
                     }
                     else
                     {
@@ -280,26 +275,8 @@ namespace SNNLib
 
                         i.LastDeltaI = i.LastDeltaI / output_layer_normalisation; //TODO what about normalisation for NOT the output layer
                        
-                        sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
                     }
-                    
-                    /*
-                    //TODO this weight decay thing just kills the weights SOO quickly
-                    double weight_sq_sum = 0;
-                    
-                    foreach (SynapseObject input_synapse in i.Inputs)
-                    {
-                        weight_sq_sum += input_synapse.Weight * input_synapse.Weight - 1;
-                    }
-                    
-                    double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
-
-                    foreach (SynapseObject input_synapse in i.Inputs)
-                    {
-                        input_synapse.Weight *= weight_decay;//weight_normalisation;
-                    }
-                    */
-                    
+                                        
                     // restrict all weights so their squares add up to 0
                     if (layer_count != 0)
                     {
@@ -398,10 +375,10 @@ namespace SNNLib
                 }
                 */
 
-                using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
-                {
-                    file.Write("NEXTLAYER,"); //TODO write all this in RUN instead, or give the option for run to.
-                }                
+             //   using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
+             //   {
+             //       file.Write("NEXTLAYER,"); //TODO write all this in RUN instead, or give the option for run to.
+             //   }                
             }
             
             //tell nodes training has finished
