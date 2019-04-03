@@ -155,7 +155,7 @@ namespace SNNLib
                         foreach (Node n in node_list)
                         {
                             {
-                                file.Write(n.LastDeltaI * n.LastDeltaI + ",");
+                                file.Write((n.LastDeltaI * n.LastDeltaI).ToString() + ",");
                             }
                         }
                         file.Write("NEXTLAYER,");
@@ -300,7 +300,7 @@ namespace SNNLib
 
                         double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
 
-                        if (max_abs_weight >= 10)
+                        if (max_abs_weight >= 1)
                         {
                             foreach (SynapseObject input_synapse in i.Inputs)
                             {
@@ -310,18 +310,15 @@ namespace SNNLib
                     }
                     
             
-                    foreach (SynapseObject j in i.Outputs) //use j to match equations
+                    foreach (SynapseObject j in i.Inputs) //use j to match equations
                     {
                         double x_j = 0;
 
                         //TODO Not ALL inputs, just for THAT synapse
 
-                        foreach (Message m in j.Target.InputMessages) //iterate over all messages(spikes) received by that node 
+                        foreach (Message m in i.InputMessages) //iterate over all messages(spikes) received by that node 
                         {
-                            if (m.Synapse == j)
-                            {
-                                x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
-                            }
+                            x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
                         }
 
                         x_arr[i.NodeIndex] = x_j;
@@ -393,6 +390,8 @@ namespace SNNLib
             }
 
         }
+
+        //network is 'untraining'
 
         public double MSE(List<Message>[] target, List<Message>[] actual, double currentTime) //TODO for currentTime need to use maxTime again
         {

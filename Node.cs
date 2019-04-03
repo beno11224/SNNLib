@@ -20,7 +20,7 @@ namespace SNNLib
         public int LayerIndex { get; protected set; }
         public int NodeIndex  {get; protected set; }
 
-        protected int Delay = 0;
+        protected int Delay = 1;
         
         public double LastDeltaI = 0;
         public bool CurrentlyTraining = false;
@@ -37,7 +37,7 @@ namespace SNNLib
             LayerIndex = layerIndex;
             NodeIndex = nodeIndex;
             Bias = 1; //should be randomised
-            Delay = 0;
+            Delay = 1;
             InputMessages = new List<Message>();
             InputMesssageNodes = new List<Node>();
             OutputMessages = new List<Message>();
