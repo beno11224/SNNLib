@@ -111,7 +111,7 @@ namespace SNNLib
 
     public class OutputNode : LeakyIntegrateAndFireNode
     {
-        public OutputNode(MessageHandling h, int layerIndex, int nodeIndex, double lambda = 1, int Excitatory = 1) : base(h, layerIndex, nodeIndex, lambda, Excitatory) { }
+        public OutputNode(MessageHandling h, int layerIndex, int nodeIndex, double lambda = 1, int Excitatory = 1) : base(h, layerIndex, nodeIndex, lambda) { }
 
         public override void Spike(int time, double val = 1)
         {
@@ -133,12 +133,10 @@ namespace SNNLib
 
         double Accumulator = 0;
         int TimePrevSpike = 0; //time that the potential was calculated at. need to 'leak' potential value before doing anything else //in hardware need the gap between 'me' and the one that sent the message
-        int Excitatory = 1;
         double Lambda = 1;
         
-        public LeakyIntegrateAndFireNode(MessageHandling h, int layerIndex, int nodeIndex, double lambda = 1, int excitatory = 1) : base(h,layerIndex,nodeIndex)
+        public LeakyIntegrateAndFireNode(MessageHandling h, int layerIndex, int nodeIndex, double lambda = 1) : base(h,layerIndex,nodeIndex)
         {
-            Excitatory = excitatory;
             Lambda = lambda;
         }
                 
@@ -166,7 +164,7 @@ namespace SNNLib
 
             if (Accumulator >= Bias)
             {
-                Spike(TimePrevSpike, Excitatory);
+                Spike(TimePrevSpike);
                 Accumulator = 0; //TODO discuss - is this correct or just remove threshold from ACC? - I mean reduce value in the accuimulator or reset it?
             }
         }

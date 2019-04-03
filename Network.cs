@@ -20,14 +20,8 @@ namespace SNNLib
 
         public MessageHandling messageHandling;
 
-        public LeakyIntegrateFireNetwork(int[] layers, int[] inhibitory_percentages, double lambda = 0.001)
+        public LeakyIntegrateFireNetwork(int[] layers, double lambda = 0.001)
         {
-
-            if (layers.Length != inhibitory_percentages.Length)
-            {
-                throw new Exception("please give an inhibitory percentage for each layer including input & output layers"); //TODO could check every n nodes to see that the percentage is about right
-            }
-
             Lambda = lambda;
 
             Nodes = new List<LeakyIntegrateAndFireNode>[layers.Length];
@@ -48,16 +42,7 @@ namespace SNNLib
                                 
                 for (int node_count = 0; node_count < layers[layer_count]; node_count++)
                 {
-                    LeakyIntegrateAndFireNode new_node;
-                    int r = random.Next(0, 100);
-                    if (r < inhibitory_percentages[layer_count])
-                    {
-                        new_node = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: layer_count, nodeIndex: node_count, excitatory: 1, lambda:Lambda);
-                    }
-                    else
-                    {
-                        new_node = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: layer_count, nodeIndex: node_count, excitatory: -1, lambda:Lambda);
-                    }
+                    LeakyIntegrateAndFireNode new_node = new LeakyIntegrateAndFireNode(messageHandling, layerIndex: layer_count, nodeIndex: node_count, lambda:Lambda);
 
 
                     foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
@@ -100,15 +85,7 @@ namespace SNNLib
             //setup output layer
             for (int node_count = 0; node_count < layers[OutputLayerIndex]; node_count++)
             {                
-                OutputNode outnode;
-                if (random.Next(0, 100) < inhibitory_percentages[0])
-                {
-                    outnode = new OutputNode(messageHandling, layerIndex: OutputLayerIndex, nodeIndex: node_count, Excitatory: 1);
-                }
-                else
-                { 
-                    outnode = new OutputNode(messageHandling, layerIndex: OutputLayerIndex, nodeIndex: node_count, Excitatory: -1);
-                }
+                OutputNode outnode = new OutputNode(messageHandling, layerIndex: OutputLayerIndex, nodeIndex: node_count, Excitatory: 1);
                 foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
                 {
                     //setup the connections between the nodes
@@ -187,9 +164,7 @@ namespace SNNLib
             int current_time = messageHandling.max_time;
 
             List<LeakyIntegrateAndFireNode> current_layer;
-            
-            //Console.Out.Write("New_layer\n");
-            
+                        
             //iterate backwards through layers (backpropagration)
             for (int layer_count = OutputLayerIndex; layer_count >= 0; layer_count--)
             {
@@ -303,7 +278,7 @@ namespace SNNLib
                     {
                         double output_layer_normalisation = max_outer_delta_i/( (ml/Ml) * Math.Sqrt(3.0 / (double)current_layer.Count));
 
-                        i.LastDeltaI = i.LastDeltaI / output_layer_normalisation;
+                        i.LastDeltaI = i.LastDeltaI / output_layer_normalisation; //TODO what about normalisation for NOT the output layer
                        
                         sum_delta_i_squared += i.LastDeltaI * i.LastDeltaI;
                     }
@@ -368,7 +343,7 @@ namespace SNNLib
                         {
                             if (m.Synapse == j)
                             {
-                                x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
+                                x_j += /*j.Weight */ Math.Exp((m.Time - current_time) * Lambda);
                             }
                         }
 
@@ -383,7 +358,7 @@ namespace SNNLib
 
                     foreach (Message m in i.OutputMessages) //iterate over all messages(spikes) sent by that node
                     {
-                        a_i += m.Synapse.Weight * Math.Exp((m.Time - current_time) * Lambda);
+                        a_i += /*m.Synapse.Weight */ Math.Exp((m.Time - current_time) * Lambda); //TODO what about the weights - eq doesnt contain them
                     }
 
                     a_arr[i.NodeIndex] = a_i;
