@@ -69,7 +69,7 @@ namespace SNNLib
                     {
                         foreach (SynapseObject input in new_node.Inputs)
                         {
-                            input.Weight = random.NextDouble() * input_range - input_norm;
+                            input.Weight = random.NextDouble() * /*input_range -*/ input_norm;
                         }
                     }
                     temp_layer.Add(new_node);
@@ -100,7 +100,7 @@ namespace SNNLib
                 outnode.Bias = input_norm;// * 3;//* alpha ;
                 foreach (SynapseObject input in outnode.Inputs)
                 {
-                    input.Weight = random.NextDouble() * input_range - input_norm; ;// 1 / outnode.Inputs.Count; //not a 'uniform' distribution - is this right??
+                    input.Weight = random.NextDouble() * /*input_range -*/ input_norm; ;// 1 / outnode.Inputs.Count; //not a 'uniform' distribution - is this right??
                 }
 
                 outs.Add(outnode);
@@ -328,7 +328,7 @@ namespace SNNLib
                             {
                                 if (m.Synapse == j)
                                 {
-                                    x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
+                                    x_j += Math.Exp((m.Time - current_time) * Lambda);
                                 }
                             }
 
@@ -336,7 +336,7 @@ namespace SNNLib
                             //TODO here----------------------------
                             double change_w = eta_w * d_w_norm * (i.LastDeltaI/* + weight_decay*/) * x_j; //TODO no reduction by size of x_j or i.LastDeltai - keeps growing once weights get above 1
                                                                                                           //TODO check error sign
-                            j.Weight -= change_w; //TODO this resulted in larger weight???
+                            j.Weight += change_w; //TODO this resulted in larger weight???
                         }
                     }                            
                     
