@@ -188,22 +188,32 @@ namespace SNNLib
                 current_layer = Nodes[layer_count];
 
                 double g_bar = 0;
+                double g_bar_backup = 0;
 
                 double Nl = current_layer.Count; //number of Neurons in layer
                 double nl = 0; //number of firing neurons in layer
 
                 foreach (Node node in current_layer) //iterate over current layer (start with 'output' nodes)
-                {                    
+                {
+                    double g = 1.0 / node.Bias;
+                    g_bar_backup += (g * g);
+
                     if (node.OutputMessages.Count > 0)
                     {
-                        double g = 1 / node.Bias;
                         g_bar += (g * g);
 
                         nl++;
                     }
                 }
 
-                g_bar = Math.Sqrt(g_bar / nl); //g_bar is now useable
+                if (g_bar == 0)
+                {
+                    g_bar = Math.Sqrt(g_bar_backup / Nl);
+                }
+                else
+                {
+                    g_bar = Math.Sqrt(g_bar / nl); //g_bar is now useable
+                }
 
                 //calcualte delta i for output nodes in one pass.
                 double max_outer_delta_i = 0;
@@ -260,10 +270,10 @@ namespace SNNLib
                     {
                         foreach (SynapseObject i_j_synapse in i.Outputs) //use j to match equations
                         {
-                            if (i_j_synapse.Target.OutputMessages.Count == 0)
+                           /* if (i_j_synapse.Target.OutputMessages.Count == 0)
                             {
                                 continue;
-                            }
+                            }*/
                             sum_weight_errors += i_j_synapse.Weight * i_j_synapse.Target.LastDeltaI; //TODO not storing the error correctly
                         }
 
@@ -307,32 +317,34 @@ namespace SNNLib
                                 input_synapse.Weight /= weight_divide_factor;//weight_normalisation;
                             }
                         }
-                    }
-                    
-            
-                    foreach (SynapseObject j in i.Inputs) //use j to match equations
-                    {
-                        double x_j = 0;
 
-                        //TODO Not ALL inputs, just for THAT synapse
-
-                        foreach (Message m in i.InputMessages) //iterate over all messages(spikes) received by that node 
+                        foreach (SynapseObject j in i.Inputs) //use j to match equations
                         {
-                            x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
+                            double x_j = 0;
+
+                            //TODO Not ALL inputs, just for THAT synapse
+
+                            foreach (Message m in i.InputMessages) //iterate over all messages(spikes) received by that node 
+                            {
+                                if (m.Synapse == j)
+                                {
+                                    x_j += j.Weight * Math.Exp((m.Time - current_time) * Lambda);
+                                }
+                            }
+
+                            x_arr[i.NodeIndex] = x_j;
+                            //TODO here----------------------------
+                            double change_w = eta_w * d_w_norm * (i.LastDeltaI/* + weight_decay*/) * x_j; //TODO no reduction by size of x_j or i.LastDeltai - keeps growing once weights get above 1
+                                                                                                          //TODO check error sign
+                            j.Weight -= change_w; //TODO this resulted in larger weight???
                         }
-
-                        x_arr[i.NodeIndex] = x_j;
-                        //TODO here----------------------------
-                        double change_w = eta_w * d_w_norm * (i.LastDeltaI/* + weight_decay*/) * x_j; //TODO no reduction by size of x_j or i.LastDeltai - keeps growing once weights get above 1
-
-                        j.Weight += change_w; //TODO this resulted in larger weight???
-                    }
-
+                    }                            
+                    
                     double a_i = 0;
 
                     foreach (Message m in i.OutputMessages) //iterate over all messages(spikes) sent by that node
                     {
-                        a_i += m.Synapse.Weight * Math.Exp((m.Time - current_time) * Lambda); //TODO what about the weights - eq doesnt contain them
+                        a_i += Math.Exp((m.Time - current_time) * Lambda);
                     }
 
                     a_arr[i.NodeIndex] = a_i;
