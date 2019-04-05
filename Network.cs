@@ -247,6 +247,16 @@ namespace SNNLib
                 double[] x_arr = new double[current_layer.Count];
                 double[] a_arr = new double[current_layer.Count];
 
+                double max_bias = 0;
+
+                foreach (Node i_bias in current_layer)
+                {
+                    if (i_bias.Bias > max_bias)
+                    {
+                        max_bias = i_bias.Bias;
+                    }
+                }
+
                 foreach (Node i in current_layer)
                 {                    
                     double ml = i.InputMesssageNodes.Count; //number of active synapses of a neuron (assumed over all neurons in layer) //TODO
@@ -285,9 +295,15 @@ namespace SNNLib
 
                         i.LastDeltaI = i.LastDeltaI / output_layer_normalisation; //TODO what about normalisation for NOT the output layer
                        
+                    }                  
+                    
+                    if (max_bias > 2)
+                    {
+                        //TODO restrict weights //TODO quite basic this one...
+                        //i.Bias /= max_bias;
                     }
-                                        
-                    // restrict all weights so their squares add up to 0
+
+                    // restrict all weights so their squares add up to 0, but only to prevent the network from dying
                     if (layer_count != 0)
                     {
                         double weight_sq_sum = 0;
@@ -317,6 +333,7 @@ namespace SNNLib
                                 input_synapse.Weight /= weight_divide_factor;//weight_normalisation;
                             }
                         }
+
 
                         foreach (SynapseObject j in i.Inputs) //use j to match equations
                         {
