@@ -85,7 +85,7 @@ namespace SNNLib
             //setup output layer
             for (int node_count = 0; node_count < layers[OutputLayerIndex]; node_count++)
             {                
-                OutputNode outnode = new OutputNode(messageHandling, layerIndex: OutputLayerIndex, nodeIndex: node_count, Excitatory: 1);
+                OutputNode outnode = new OutputNode(messageHandling, layerIndex: OutputLayerIndex, nodeIndex: node_count, Excitatory: 1, lambda: Lambda);
                 foreach (LeakyIntegrateAndFireNode prev_node in prev_layer)
                 {
                     //setup the connections between the nodes
@@ -368,7 +368,7 @@ namespace SNNLib
 
                     double change_th = eta_th * d_th_norm * i.LastDeltaI * a_i;
 
-                    if (i.Bias - change_th < min_bias && layer_count != 0) //TODO not hitting this??
+                    if (i.Bias - change_th < min_bias && layer_count != 0) //TODO not hitting this?? //TODO not wired it up???
                     {
                         foreach(SynapseObject input_synapse in i.Inputs)
                         {
