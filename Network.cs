@@ -16,7 +16,7 @@ namespace SNNLib
 
         public Random random = new Random(Seed:1); //TODO allow for seed
 
-        double Lambda = 0.001;
+        double Lambda = 0.02;
 
         public MessageHandling messageHandling;
 
