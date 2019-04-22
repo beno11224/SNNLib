@@ -169,7 +169,7 @@ namespace SNNLib
 
 
         //backpropagation type training for (single run) temporal encoded LeakyIntegrateFireNodes
-        public void TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, string printLocation = "", double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.2, double weight_beta = 0.005, double weight_lambda = 1)
+        public List<Message>[] TrainLIF(List<Message>[] trainingInput, List<Message>[] trainingTarget, string printLocation = "", double eta_w = 0.002, double eta_th = 0.1, double min_bias = 0.2, double weight_beta = 0.005, double weight_lambda = 1)
         {
             if (trainingInput.Length != Nodes[0].Count || trainingTarget.Length != Nodes[OutputLayerIndex].Count)
             {
@@ -379,32 +379,7 @@ namespace SNNLib
                     {
                         i.Bias -= change_th;
                     }
-                }
-
-                /*
-                //calculating different a_i thing from paper
-                double[] new_ai = new double[current_layer.Count];
-                
-                foreach(Node n in current_layer)
-                {
-                    //TODO recalcualte a_i
-                    new_ai[n.NodeIndex] = 0;
-                    double sum = 0;
-                    foreach(SynapseObject k in n.Inputs)
-                    {
-                        if (k.Target.OutputMessages.Count > 0)
-                        {
-                            sum += x_arr[n.NodeIndex] * k.Weight;
-                        }
-                    }
-                    new_ai[n.NodeIndex] = sum / n.Bias;
-                }
-                */
-
-             //   using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\Users\beno11224\Desktop\WriteLines2.csv", true))
-             //   {
-             //       file.Write("NEXTLAYER,"); //TODO write all this in RUN instead, or give the option for run to.
-             //   }                
+                }                
             }
             
             //tell nodes training has finished
@@ -417,6 +392,8 @@ namespace SNNLib
                 }
 
             }
+
+            return output;
 
         }
 
