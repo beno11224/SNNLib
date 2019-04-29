@@ -14,7 +14,7 @@ namespace SNNLib
         SynapseObject[] InputSynapses;
         int OutputLayerIndex;
 
-        public Random random = new Random(Seed:1); //TODO allow for seed
+        public Random random = new Random(Seed:1);
 
         double Lambda = 0.02;
 
@@ -56,7 +56,7 @@ namespace SNNLib
                     if (layer_count == 0) // input layer
                     {
                         //setup the input synapses (one synapse going to first layer of nodes)
-                        SynapseObject input_synapse = new SynapseObject(null, new_node, 1); //TODO set weight to normalised value
+                        SynapseObject input_synapse = new SynapseObject(null, new_node, 1);
                         new_node.addSource(input_synapse);
                         InputSynapses[node_count] = input_synapse;
                     }
@@ -64,12 +64,12 @@ namespace SNNLib
                     double input_norm = Math.Sqrt(3.0 / (double)new_node.Inputs.Count);
                     double input_range = input_norm * 2;
 
-                    new_node.Bias = input_norm;// * 3;///*alpha*/3 * Math.Sqrt(3/new_node.Inputs.Count);
+                    new_node.Bias = input_norm;
                     if (layer_count != 0)
                     {
                         foreach (SynapseObject input in new_node.Inputs)
                         {
-                            input.Weight = random.NextDouble() * /*input_range -*/ input_norm;
+                            input.Weight = random.NextDouble() * input_norm;
                         }
                     }
                     temp_layer.Add(new_node);
@@ -94,13 +94,13 @@ namespace SNNLib
                     outnode.addSource(s);
                 }
 
-                double input_norm = Math.Sqrt(3.0 / (double)outnode.Inputs.Count); //TODO other layers
+                double input_norm = Math.Sqrt(3.0 / (double)outnode.Inputs.Count); 
                 double input_range = input_norm * 2;
 
-                outnode.Bias = input_norm;// * 3;//* alpha ;
+                outnode.Bias = input_norm;
                 foreach (SynapseObject input in outnode.Inputs)
                 {
-                    input.Weight = random.NextDouble() * /*input_range -*/ input_norm; ;// 1 / outnode.Inputs.Count; //not a 'uniform' distribution - is this right??
+                    input.Weight = random.NextDouble() * input_norm; ;
                 }
 
                 outs.Add(outnode);
@@ -134,7 +134,7 @@ namespace SNNLib
             }
 
             //loop round current 'events' till none left
-            while (messageHandling.RunEventsAtNextTime() && messageHandling.max_time < 1000) // for reference in hardware when number of loops == number of nodes we have looped around one time.
+            while (messageHandling.RunEventsAtNextTime() && messageHandling.max_time < 1000)
             {
                 foreach (List<LeakyIntegrateAndFireNode> current_layer in Nodes)
                 {
@@ -276,15 +276,11 @@ namespace SNNLib
                     double sum_weight_errors = 0;
 
                     //work out error 
-                    if (layer_count != OutputLayerIndex) //current_layer != Nodes[OutputLayerIndex])
+                    if (layer_count != OutputLayerIndex)
                     {
                         foreach (SynapseObject i_j_synapse in i.Outputs) //use j to match equations
                         {
-                           /* if (i_j_synapse.Target.OutputMessages.Count == 0)
-                            {
-                                continue;
-                            }*/
-                            sum_weight_errors += i_j_synapse.Weight * i_j_synapse.Target.LastDeltaI; //TODO not storing the error correctly
+                            sum_weight_errors += i_j_synapse.Weight * i_j_synapse.Target.LastDeltaI;
                         }
 
                         i.LastDeltaI = g_ratio * delta_norm * sum_weight_errors;
@@ -293,16 +289,10 @@ namespace SNNLib
                     {
                         double output_layer_normalisation = max_outer_delta_i/( (ml/Ml) * Math.Sqrt(3.0 / (double)current_layer.Count));
 
-                        i.LastDeltaI = i.LastDeltaI / output_layer_normalisation; //TODO what about normalisation for NOT the output layer
+                        i.LastDeltaI = i.LastDeltaI / output_layer_normalisation;
                        
                     }                  
-                    
-                    if (max_bias > 2)
-                    {
-                        //TODO restrict weights //TODO quite basic this one...
-                        //i.Bias /= max_bias;
-                    }
-
+                   
                     // restrict all weights so their squares add up to 0, but only to prevent the network from dying
                     if (layer_count != 0)
                     {
@@ -324,7 +314,7 @@ namespace SNNLib
 
                         double weight_divide_factor = max_abs_weight / Math.Sqrt(3.0 / (double)i.Inputs.Count);
 
-                        double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); //TODO check value
+                        double weight_decay = 0.5 * weight_lambda * Math.Exp(weight_beta * weight_sq_sum); 
 
                         if (max_abs_weight >= 1)
                         {
@@ -338,9 +328,7 @@ namespace SNNLib
                         foreach (SynapseObject j in i.Inputs) //use j to match equations
                         {
                             double x_j = 0;
-
-                            //TODO Not ALL inputs, just for THAT synapse
-
+                            
                             foreach (Message m in i.InputMessages) //iterate over all messages(spikes) received by that node 
                             {
                                 if (m.Synapse == j)
@@ -350,10 +338,9 @@ namespace SNNLib
                             }
 
                             x_arr[i.NodeIndex] = x_j;
-                            //TODO here----------------------------
-                            double change_w = eta_w * d_w_norm * (i.LastDeltaI/* + weight_decay*/) * x_j; //TODO no reduction by size of x_j or i.LastDeltai - keeps growing once weights get above 1
-                                                                                                          //TODO check error sign
-                            j.Weight += change_w; //TODO this resulted in larger weight???
+                            double change_w = eta_w * d_w_norm * (i.LastDeltaI) * x_j;
+                                                                                                         
+                            j.Weight += change_w; 
                         }
                     }                            
                     
@@ -368,7 +355,7 @@ namespace SNNLib
 
                     double change_th = eta_th * d_th_norm * i.LastDeltaI * a_i;
 
-                    if (i.Bias - change_th < min_bias && layer_count != 0) //TODO not hitting this?? //TODO not wired it up???
+                    if (i.Bias - change_th < min_bias && layer_count != 0)
                     {
                         foreach(SynapseObject input_synapse in i.Inputs)
                         {
@@ -396,10 +383,8 @@ namespace SNNLib
             return output;
 
         }
-
-        //network is 'untraining'
-
-        public double MSE(List<Message>[] target, List<Message>[] actual, double currentTime) //TODO for currentTime need to use maxTime again
+        
+        public double MSE(List<Message>[] target, List<Message>[] actual, double currentTime)
         {
             if (target.Length != actual.Length)
             {

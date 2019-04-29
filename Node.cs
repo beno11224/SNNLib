@@ -11,7 +11,7 @@ namespace SNNLib
     public class Node
     {
         //Each node contains the snapses that go from it to other nodes.
-        public double Bias = 0; //same as weights - needs to not be a double?
+        public double Bias = 0;
         public List<SynapseObject> Inputs { get; protected set; }
         public List<SynapseObject> Outputs { get; protected set; }
 
@@ -36,7 +36,7 @@ namespace SNNLib
             messageHandler = h;
             LayerIndex = layerIndex;
             NodeIndex = nodeIndex;
-            Bias = 1; //should be randomised
+            Bias = 1;
             Delay = 1;
             InputMessages = new List<Message>();
             InputMesssageNodes = new List<Node>();
@@ -126,9 +126,6 @@ namespace SNNLib
 
     public class LeakyIntegrateAndFireNode : Node
     {
-        //explanation of harware implementation in report
-        //used for where ALL neurons are connected.
-
         //Leaky Integrate and Fire (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6252600&tag=1)
 
         double Accumulator = 0;
@@ -142,7 +139,7 @@ namespace SNNLib
                 
         public new void PostFire()
         {
-            //Accumulator = Accumulator*0.9;            //TODO maybe do decay in here??
+            
         }
 
         public override void ReceiveData(Message rx)
@@ -165,7 +162,7 @@ namespace SNNLib
             if (Accumulator >= Bias)
             {
                 Spike(TimePrevSpike);
-                Accumulator = 0; //TODO discuss - is this correct or just remove threshold from ACC? - I mean reduce value in the accuimulator or reset it?
+                Accumulator = 0;
             }
         }
 
